@@ -1,0 +1,14 @@
+{
+  "name": "physics-knowledge-atlas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "node scripts/serve.mjs",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "katex": "0.18.9"
+  }
+}
