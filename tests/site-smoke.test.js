@@ -214,15 +214,26 @@ test('the study views render chapter structure and all five evidence-based asses
 
 test('chapter 16 has a clickable local core sequence when no global route covers it', async () => {
   const views = await import(pathToFileURL(path.join(projectRoot, 'dist', 'assets', 'assessment.js')).href);
-  const { chapters, nodes } = await import(pathToFileURL(path.join(projectRoot, 'dist', 'assets', 'data', 'physics-data.js')).href);
+  const { chapters, nodes, chapterStudyPaths } = await import(pathToFileURL(path.join(projectRoot, 'dist', 'assets', 'data', 'physics-data.js')).href);
   const chapter = chapters.find((item) => item.id === 'ch-16');
   const chapterNodes = nodes.filter((node) => node.chapterId === chapter.id);
-  const coreIds = chapterNodes.filter((node) => node.level === 'core').map((node) => node.id);
+  const coreIds = chapterStudyPaths[chapter.id].filter((id) => chapterNodes.find((node) => node.id === id)?.level === 'core');
   const markup = views.renderChapter(chapter, chapterNodes, {});
   const pathMarkup = markup.match(/<section class="chapter-section" aria-labelledby="chapter-route-title">([\s\S]*?)<\/section>/)?.[1] ?? '';
 
-  assert.match(pathMarkup, /本章核心顺序/, 'chapter 16 should offer its directory-order local core path');
+  assert.match(pathMarkup, /本章核心路径/, 'chapter 16 should offer its directory-order local core path');
   assert.deepEqual([...pathMarkup.matchAll(/data-node-id="([^"]+)"/g)].map((match) => match[1]), coreIds, 'each core step should be an existing clickable node in data order');
+});
+
+test('a chapter with cross-chapter routes still exposes its complete local core sequence', async () => {
+  const views = await import(pathToFileURL(path.join(projectRoot, 'dist', 'assets', 'assessment.js')).href);
+  const { chapters, nodes, chapterStudyPaths } = await import(pathToFileURL(path.join(projectRoot, 'dist', 'assets', 'data', 'physics-data.js')).href);
+  const chapter = chapters.find((item) => item.id === 'ch-13');
+  const chapterNodes = nodes.filter((node) => node.chapterId === chapter.id);
+  const coreIds = chapterStudyPaths[chapter.id].filter((id) => chapterNodes.find((node) => node.id === id)?.level === 'core');
+  const markup = views.renderChapter(chapter, chapterNodes, {});
+  const pathMarkup = markup.match(/<section class="chapter-section" aria-labelledby="chapter-route-title">([\s\S]*?)<\/section>/)?.[1] ?? '';
+  assert.deepEqual([...pathMarkup.matchAll(/data-node-id="([^"]+)"/g)].map((match) => match[1]), coreIds);
 });
 
 test('assessment distinguishes the publisher audience from this site audience and links the HEP source', async () => {

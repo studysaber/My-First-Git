@@ -1,4 +1,4 @@
-import { edges, nodes as catalogNodes, routes, sourceNotes } from './data/physics-data.js';
+import { chapterStudyPaths, edges, nodes as catalogNodes, routes, sourceNotes } from './data/physics-data.js';
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -37,9 +37,11 @@ export function renderChapter(chapter, chapterNodes = [], progress = {}) {
     .filter((id) => !chapterNodes.some((node) => node.id === id));
   const prerequisites = prerequisiteIds.map((id) => nodeById.get(id)).filter(Boolean);
   const simulationNodes = chapterNodes.filter((node) => node.simulationId);
-  const corePath = linkedRoutes.length
-    ? '<p>选择一条已有路线建立本章与相邻主题的联系。</p><div class="chapter-route-list">' + linkedRoutes.map((route) => '<button class="assessment-route-link" type="button" data-route-id="' + escapeHtml(route.id) + '">' + escapeHtml(route.title) + '<span>' + route.minutes + ' 分钟</span></button>').join('') + '</div>'
-    : '<p>当前没有跨章路线覆盖本章核心节点。以下按目录与数据顺序列出本章核心路径。</p><div class="chapter-node-list">' + renderNodeLinks(core.map((node) => node.id)) + '</div>';
+  const orderedCoreIds = (chapterStudyPaths[chapter.id] ?? core.map((node) => node.id)).filter((id) => coreIds.has(id));
+  const corePath = `<p>按本章小节顺序依次学习，点开第一站后可用“下一节”继续。</p><div class="chapter-node-list">${renderNodeLinks(orderedCoreIds) || '<p>本章尚无核心节点。</p>'}</div>`;
+  const crossChapterRoutes = linkedRoutes.length
+    ? `<h4>跨章速学路线</h4><p>想把本章内容连到相邻主题，可另选短路线。</p><div class="chapter-route-list">${renderRouteLinks(linkedRoutes.map((route) => route.id))}</div>`
+    : '';
 
   return `<article class="study-view chapter-view" aria-labelledby="chapter-view-title">
     <header class="study-view-heading">
@@ -53,8 +55,8 @@ export function renderChapter(chapter, chapterNodes = [], progress = {}) {
         <div class="chapter-node-list">${renderNodeLinks(core.map((node) => node.id)) || '<p>本章暂无核心节点。</p>'}</div>
       </section>
       <section class="chapter-section" aria-labelledby="chapter-route-title">
-        <h3 id="chapter-route-title">${linkedRoutes.length ? '核心路径' : '本章核心顺序'}</h3>
-        ${corePath || '<p>本章尚无核心节点。</p>'}
+        <h3 id="chapter-route-title">本章核心路径</h3>
+        ${corePath}${crossChapterRoutes}
       </section>
       <section class="chapter-section" aria-labelledby="chapter-prereq-title">
         <h3 id="chapter-prereq-title">先修概览</h3>

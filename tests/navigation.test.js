@@ -22,6 +22,13 @@ test('a full-graph link restores the chosen detail tab', () => {
   assert.equal(parseLocation(hash, catalog).tab, 'experiment');
 });
 
+test('a chapter link restores its selected chapter even when the last node was elsewhere', () => {
+  const state = parseLocation('#view=chapter&node=a&chapter=ch-10', catalog);
+  assert.equal(state.view, 'chapter');
+  assert.equal(state.chapterId, 'ch-10');
+  assert.equal(state.nodeId, 'a');
+});
+
 test('invalid IDs and unsupported tabs fall back to a valid location', () => {
   assert.deepEqual(parseLocation('#view=unsafe&node=missing&tab=wrong', catalog), {
     view: 'study', nodeId: 'a', chapterId: 'ch-9', routeId: 'r', tab: 'understand',

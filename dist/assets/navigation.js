@@ -35,7 +35,7 @@ export function parseLocation(hash, catalog) {
   return {
     view,
     nodeId: node?.id ?? null,
-    chapterId: node?.chapterId ?? chapters[0]?.id ?? null,
+    chapterId: (view === 'chapter' ? requestedChapter?.id : null) ?? node?.chapterId ?? chapters[0]?.id ?? null,
     routeId: route?.id ?? null,
     tab,
   };

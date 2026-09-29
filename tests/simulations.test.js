@@ -342,7 +342,9 @@ test('photoelectric effect separates threshold, emission, and stopping voltage',
   const above = photoelectricResult({ frequencyHz: 5e14, workFunctionEv });
 
   assert.equal(below.emitted, false);
-  closeTo(below.maxKineticEnergyEv, 0, 1e-12);
+  assert.equal(below.maxKineticEnergyEv, null);
+  assert.equal(below.maxKineticEnergyJ, null);
+  assert.equal(below.stoppingPotentialV, null);
   assert.equal(atThreshold.emitted, true);
   closeTo(atThreshold.maxKineticEnergyEv, 0, 1e-12);
   assert.equal(above.emitted, true);
@@ -350,6 +352,16 @@ test('photoelectric effect separates threshold, emission, and stopping voltage',
   closeTo(above.stoppingPotentialV, above.maxKineticEnergyEv, 1e-12);
   closeTo(above.thresholdFrequencyHz, thresholdFrequencyHz, 1e-3);
   closeTo(above.maxKineticEnergyJ, above.maxKineticEnergyEv * 1.602176634e-19, 1e-30);
+});
+
+test('sub-threshold photons do not render a zero-energy photoelectron', () => {
+  const container = new FakeSimulationContainer();
+  const cleanup = mountSimulation(container, 'photoelectric');
+  const work = container.controls.find((item) => item.dataset.param === 'workFunctionEv');
+  work.value = '4'; work.dispatch('input');
+  assert.match(container.querySelector('[data-role="result"]').textContent, /无光电子逸出.*不适用/);
+  assert.doesNotMatch(container.querySelector('[data-role="visual"]').innerHTML, /<circle\b/);
+  cleanup();
 });
 
 test('photoelectric effect rejects non-positive and non-finite photon parameters', () => {
@@ -431,6 +443,22 @@ test('all eight simulations mount labeled controls, a result, and an explanatory
     assert.match(container.querySelector('[data-role="result"]').textContent, /适用|有效|标准模型/, `${id} output should state its validity or classification condition`);
     assert.match(container.markup, /<svg\b|<canvas\b/, `${id} should include a visual`);
     assert.match(container.markup, /simulation-fallback/, `${id} should retain a static explanatory fallback`);
+    cleanup();
+  }
+});
+
+test('only time-evolving experiments expose pause and single-step controls', () => {
+  for (const id of ['wave', 'pendulum']) {
+    const container = new FakeSimulationContainer();
+    const cleanup = mountSimulation(container, id);
+    assert.match(container.markup, /data-action="pause"/, `${id} should pause`);
+    assert.match(container.markup, /data-action="step"/, `${id} should step`);
+    cleanup();
+  }
+  for (const id of ['interference', 'maxwell', 'carnot', 'relativity', 'photoelectric', 'particles']) {
+    const container = new FakeSimulationContainer();
+    const cleanup = mountSimulation(container, id);
+    assert.doesNotMatch(container.markup, /data-action="(?:pause|step)"/, `${id} is a parameter diagram, not a time animation`);
     cleanup();
   }
 });

@@ -78,10 +78,12 @@ test('600 and 700 nm double slit maxima land at 12 and 14 mm on the same screen'
   expect(Number(await opacityAt(7))).toBeCloseTo(0, 2);
 });
 
-test('threshold below emission shows zero kinetic energy with a directed photon', async ({ page }) => {
+test('sub-threshold light shows no electron energy readout with a directed photon', async ({ page }) => {
   const host = await mount(page, 'photoelectric');
   await host.locator('[data-param="workFunctionEv"]').evaluate((element) => { element.value = '4'; element.dispatchEvent(new Event('input', { bubbles: true })); });
   await expect(host.locator('[data-role="result"]')).toContainText('无光电子逸出');
+  await expect(host.locator('[data-role="result"]')).toContainText('不适用');
+  await expect(host.locator('svg circle')).toHaveCount(0);
   await expect(host.locator('svg')).toHaveAttribute('aria-label', /阈频以下无逸出/);
   await expect(host.locator('svg')).toContainText('光 → 金属');
 });

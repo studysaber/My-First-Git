@@ -79,14 +79,21 @@ export function photoelectricResult({ frequencyHz, workFunctionEv }) {
   positive('入射光频率', frequencyHz);
   positive('逸出功', workFunctionEv);
   const thresholdFrequencyHz = workFunctionEv / PLANCK_CONSTANT_EV_S;
-  const maxKineticEnergyEv = Math.max(0, PLANCK_CONSTANT_EV_S * frequencyHz - workFunctionEv);
+  const photonEnergyEv = PLANCK_CONSTANT_EV_S * frequencyHz;
   finiteNumber('阈频结果', thresholdFrequencyHz);
-  finiteNumber('最大动能结果', maxKineticEnergyEv);
+  finiteNumber('光子能量结果', photonEnergyEv);
+  const emitted = frequencyHz >= thresholdFrequencyHz;
+  const maxKineticEnergyEv = emitted ? Math.max(0, photonEnergyEv - workFunctionEv) : null;
+  const maxKineticEnergyJ = emitted ? maxKineticEnergyEv * 1.602176634e-19 : null;
+  if (emitted) {
+    finiteNumber('最大动能结果', maxKineticEnergyEv);
+    finiteNumber('最大动能焦耳结果', maxKineticEnergyJ);
+  }
   return {
     thresholdFrequencyHz,
-    emitted: frequencyHz >= thresholdFrequencyHz,
+    emitted,
     maxKineticEnergyEv,
-    maxKineticEnergyJ: maxKineticEnergyEv * 1.602176634e-19,
+    maxKineticEnergyJ,
     stoppingPotentialV: maxKineticEnergyEv,
   };
 }
@@ -217,7 +224,7 @@ const simulationDefinitions = {
       range('workFunctionEv', '金属逸出功 Φ', 1, 4, 0.1, 2, 'eV'),
     ],
     calculate: (values) => ({ ...values, ...photoelectricResult({ frequencyHz: values.frequencyScale * 1e14, workFunctionEv: values.workFunctionEv }) }),
-    summary: ({ thresholdFrequencyHz, emitted, maxKineticEnergyEv, stoppingPotentialV }) => `阈频 ν₀ = ${formatNumber(thresholdFrequencyHz)} Hz；${emitted ? '有光电子逸出' : '频率低于阈值，无光电子逸出'}，Kₘₐₓ = ${formatNumber(maxKineticEnergyEv)} eV，遏止电压 V₀ = ${formatNumber(stoppingPotentialV)} V。适用条件：单光子能量 hν；表面逸出功固定。`,
+    summary: ({ thresholdFrequencyHz, emitted, maxKineticEnergyEv, stoppingPotentialV }) => `阈频 ν₀ = ${formatNumber(thresholdFrequencyHz)} Hz；${emitted ? `有光电子逸出，Kₘₐₓ = ${formatNumber(maxKineticEnergyEv)} eV，遏止电压 V₀ = ${formatNumber(stoppingPotentialV)} V` : '频率低于阈值，无光电子逸出；Kₘₐₓ 与遏止电压不适用'}。适用条件：单光子能量 hν；表面逸出功固定。`,
     fallback: '频率决定单个光子的能量；超过阈频后，增加频率会提高光电子最大动能，单纯增大光强不会改变阈频。',
   },
   particles: {
@@ -308,11 +315,15 @@ function plotSvg(id, state, waveTime = 0) {
     const threshold = work / PLANCK_CONSTANT_EV_S / 1e14;
     const x = (frequencyValue) => 38 + (frequencyValue - 2.5) / 5.5 * 215;
     const y = (kinetic) => 113 - kinetic / 2.4 * 76;
-    const line = Array.from({ length: 41 }, (_, index) => {
-      const f = threshold + (8 - threshold) * index / 40;
+    const curveStart = Math.max(2.5, threshold);
+    const line = threshold <= 8 ? Array.from({ length: 41 }, (_, index) => {
+      const f = curveStart + (8 - curveStart) * index / 40;
       return `${index ? 'L' : 'M'}${x(f).toFixed(2)} ${y(Math.max(0, PLANCK_CONSTANT_EV_S * f * 1e14 - work)).toFixed(2)}`;
-    }).join(' ');
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="光电效应最大动能与频率曲线；入射光指向金属，阈频以下无逸出"><path d="M15 40L52 40" stroke="#B39BFF" stroke-width="3"/><path d="M52 30V50" stroke="#82B6FF" stroke-width="5"/><text x="14" y="23">光 → 金属</text><path d="M38 113H258 M38 113V33" stroke="#52677F"/><path d="${line}" fill="none" stroke="#73D9C7" stroke-width="2"/><circle cx="${x(frequency).toFixed(2)}" cy="${y(state.maxKineticEnergyEv).toFixed(2)}" r="4" fill="#F3BD65"/><text x="146" y="29">hν = Φ + Kₘₐₓ</text><text x="200" y="139">ν (×10¹⁴ Hz)</text><text x="42" y="130">Kₘₐₓ (eV)</text></svg>`;
+    }).join(' ') : '';
+    const marker = state.emitted
+      ? `<circle cx="${x(frequency).toFixed(2)}" cy="${y(state.maxKineticEnergyEv).toFixed(2)}" r="4" fill="#F3BD65"/>`
+      : `<path d="M${x(frequency).toFixed(2)} 113V46" stroke="#F3BD65" stroke-dasharray="3 4"/><text x="105" y="29">hν &lt; Φ：无逸出</text>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="光电效应最大动能与频率曲线；入射光指向金属，阈频以下无逸出"><path d="M15 40L52 40" stroke="#B39BFF" stroke-width="3"/><path d="M52 30V50" stroke="#82B6FF" stroke-width="5"/><text x="14" y="23">光 → 金属</text><path d="M38 113H258 M38 113V33" stroke="#52677F"/>${line ? `<path d="${line}" fill="none" stroke="#73D9C7" stroke-width="2"/>` : ''}${marker}${state.emitted ? '<text x="146" y="29">hν = Φ + Kₘₐₓ</text>' : ''}<text x="200" y="139">ν (×10¹⁴ Hz)</text><text x="42" y="130">Kₘₐₓ (eV)</text></svg>`;
   }
   const rows = particleFamilies.interactions.map((interaction, index) => {
     const y = 30 + index * 27;
@@ -337,10 +348,11 @@ export function mountSimulation(container, id) {
   const defaults = initialValues(definition);
   const firstState = definition.calculate(defaults);
   const controlsMarkup = definition.controls.map(parameterMarkup).join('');
+  const dynamic = id === 'wave' || id === 'pendulum';
   container.innerHTML = `
     <section class="simulation-card" aria-labelledby="simulation-title-${escapeHtml(id)}">
       <div class="simulation-heading"><div><span class="simulation-kicker">物理微型演示</span><h3 id="simulation-title-${escapeHtml(id)}">${escapeHtml(definition.title)}</h3></div>
-        ${id === 'particles' ? '' : '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>'}</div>
+        ${dynamic ? '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>' : ''}</div>
       <div class="simulation-controls">${controlsMarkup}</div>
       <p class="simulation-result" data-role="result" aria-live="polite"></p>
       <p class="simulation-validation" data-role="validation" role="status"></p>
@@ -352,7 +364,7 @@ export function mountSimulation(container, id) {
   const validation = container.querySelector('[data-role="validation"]');
   const visual = container.querySelector('[data-role="visual"]');
   const pause = container.querySelector('[data-action="pause"]');
-  if (!result || !validation || !visual || (id !== 'particles' && !pause)) throw new Error('演示界面缺少必要的结果或控制区域。');
+  if (!result || !validation || !visual || (dynamic && !pause)) throw new Error('演示界面缺少必要的结果或控制区域。');
 
   const readValues = () => Object.fromEntries(controls.map((control) => {
     const name = control.dataset.param;
@@ -372,7 +384,6 @@ export function mountSimulation(container, id) {
   if (systemReducedMotion) container.classList.add('reduced-motion');
 
   const appReducedMotion = () => Boolean(container.closest?.('.reduced-motion'));
-  const dynamic = id === 'wave' || id === 'pendulum';
   const clock = createSimulationClock({ onFrame: (time) => {
     if (!currentState) return;
     visual.innerHTML = visualMarkup(id, currentState, definition, time);

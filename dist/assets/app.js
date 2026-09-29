@@ -1,4 +1,4 @@
-import { assessment as assessmentSections, chapters, edges, nodes, routes, sourceNotes } from './data/physics-data.js';
+import { assessment as assessmentSections, chapterStudyPaths, chapters, edges, nodes, routes, sourceNotes } from './data/physics-data.js';
 import { advanceRoute, createProgressStore, getRouteState, renderNodeDetail, searchKnowledge } from './study.js';
 import { renderGraph } from './graph.js';
 import { mountSimulation } from './simulations.js';
@@ -51,6 +51,20 @@ function mountStudyApp(root, data) {
     sources: data.sourceNotes ?? sourceNotes,
   };
   const byId = new Map(catalog.nodes.map((node) => [node.id, node]));
+  const authoredChapterPaths = data.chapterStudyPaths ?? chapterStudyPaths;
+  const chapterRoutes = catalog.chapters.map((chapter) => {
+    const nodeIds = (authoredChapterPaths[chapter.id] ?? [])
+      .filter((id) => byId.get(id)?.chapterId === chapter.id && byId.get(id)?.level === 'core');
+    return {
+      id: `chapter-${chapter.id}`,
+      title: `第 ${chapter.number} 章 · ${chapter.title}`,
+      goal: '按本章核心路径学习；扩展内容可在章节地图中自由探索。',
+      minutes: Math.max(10, nodeIds.length * 3),
+      nodeIds,
+    };
+  }).filter((route) => route.nodeIds.length);
+  const chapterRouteById = new Map(chapterRoutes.map((route) => [route.id.slice('chapter-'.length), route]));
+  const allRoutes = [...catalog.routes, ...chapterRoutes];
   const storage = safeStorage();
   const learningStorage = createLearningStorage(storage);
   let progress = createProgressStore(learningStorage.storage);
@@ -58,8 +72,8 @@ function mountStudyApp(root, data) {
   let savedLocation = '';
   try { savedLocation = storage?.getItem('physics-atlas-location-v1') ?? ''; } catch { /* location remains optional */ }
   const sharedHash = typeof window !== 'undefined' ? window.location?.hash ?? '' : '';
-  const initialLocation = parseLocation(sharedHash || savedLocation, catalog);
-  let currentRoute = catalog.routes.find((route) => route.id === initialLocation.routeId) ?? catalog.routes[0];
+  const initialLocation = parseLocation(sharedHash || savedLocation, { ...catalog, routes: allRoutes });
+  let currentRoute = allRoutes.find((route) => route.id === initialLocation.routeId) ?? allRoutes[0];
   let currentChapter = catalog.chapters.find((chapter) => chapter.id === initialLocation.chapterId) ?? catalog.chapters[0];
   let selectedId = initialLocation.nodeId ?? currentRoute.nodeIds[0];
   let graph = null;
@@ -123,7 +137,7 @@ function mountStudyApp(root, data) {
           <div class="panel-heading"><h2 id="route-heading">${escapeHtml(currentRoute.title)}</h2><span class="chapter-tag">推荐路线</span></div>
           <div class="route-toolbar">
             <label for="route-select">学习路线</label>
-            <select id="route-select" aria-label="选择速学路线">${catalog.routes.map((route) => `<option value="${escapeHtml(route.id)}"${route.id === currentRoute.id ? ' selected' : ''}>${escapeHtml(route.title)} · ${route.nodeIds.length} 站 · 概览约 ${route.minutes} 分钟</option>`).join('')}</select>
+            <select id="route-select" aria-label="选择学习路线">${allRoutes.map((route) => `<option value="${escapeHtml(route.id)}"${route.id === currentRoute.id ? ' selected' : ''}>${escapeHtml(route.title)} · ${route.nodeIds.length} 站 · 概览约 ${route.minutes} 分钟</option>`).join('')}</select>
             <span class="route-meta" id="route-meta"></span>
           </div>
           <p class="graph-copy" id="route-goal"></p>
@@ -232,6 +246,9 @@ function mountStudyApp(root, data) {
   }
 
   function persistenceNotice(action) {
+    if (learningStorage.getLegacySyncState?.() === 'out-of-sync') {
+      return `${action}；旧版页面可能看不到最新自评，回退前请先导出学习进度备份。`;
+    }
     return progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory'
       ? `${action}；仅在本次打开期间保存，请导出备份。`
       : `${action}。`;
@@ -530,7 +547,7 @@ function mountStudyApp(root, data) {
   }
 
   function selectRoute(routeId) {
-    currentRoute = catalog.routes.find((route) => route.id === routeId) ?? catalog.routes[0];
+    currentRoute = allRoutes.find((route) => route.id === routeId) ?? allRoutes[0];
     root.querySelector('#route-select').value = currentRoute.id;
     selectedId = currentRoute.nodeIds[0];
     searchIds = null;
@@ -582,7 +599,13 @@ function mountStudyApp(root, data) {
     const relatedNode = event.target.closest?.('.related-node[data-node-id]');
     if (relatedNode) {
       const id = relatedNode.getAttribute('data-node-id');
-      if (activeView !== '完整图谱') changeView('完整图谱');
+      const chapterRoute = activeView === '章节地图' ? chapterRouteById.get(currentChapter.id) : null;
+      if (chapterRoute?.nodeIds.includes(id)) {
+        currentRoute = chapterRoute;
+        selectedId = id;
+        root.querySelector('#route-select').value = chapterRoute.id;
+        changeView('速学路线');
+      } else if (activeView !== '完整图谱') changeView('完整图谱');
       else if (searchIds) clearSearch();
       selectNode(id, { focus: true });
       return;
@@ -721,8 +744,8 @@ function mountStudyApp(root, data) {
   const restoreLocation = () => {
     if (typeof window === 'undefined') return;
     restoringLocation = true;
-    const state = parseLocation(window.location.hash, catalog);
-    currentRoute = catalog.routes.find((route) => route.id === state.routeId) ?? catalog.routes[0];
+    const state = parseLocation(window.location.hash, { ...catalog, routes: allRoutes });
+    currentRoute = allRoutes.find((route) => route.id === state.routeId) ?? allRoutes[0];
     currentChapter = catalog.chapters.find((chapter) => chapter.id === state.chapterId) ?? catalog.chapters[0];
     selectedId = state.nodeId ?? currentRoute.nodeIds[0];
     currentTab = state.tab;
@@ -742,6 +765,7 @@ function mountStudyApp(root, data) {
   else renderGraphForView();
   updateDetail(selectedId);
   if (learningStorage.state === 'damaged') progressMessage.textContent = '本地学习记录无法读取；原始存储未覆盖。此次使用仅保存在内存，请导出备份。';
+  else if (learningStorage.getLegacySyncState?.() === 'out-of-sync') progressMessage.textContent = '旧版进度镜像未同步；若要回退页面，请先导出学习进度备份。';
   else if (progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory') progressMessage.textContent = '进度仅在本次打开期间保存，请导出备份。';
   return { progress, selectNode, destroy() {
     activeSimulationCleanup?.(); removeMotionListener?.(); graph?.destroy();

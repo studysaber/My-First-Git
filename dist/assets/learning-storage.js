@@ -6,7 +6,27 @@ const ALLOWED = new Set([PROGRESS_KEY, PRACTICE_KEY]);
 function validCanonical(value) {
   return value?.schemaVersion === 2
     && (value.progressRaw === null || typeof value.progressRaw === 'string')
-    && (value.practiceRaw === null || typeof value.practiceRaw === 'string');
+    && (value.practiceRaw === null || typeof value.practiceRaw === 'string')
+    && (!Object.hasOwn(value, 'legacyProgressRaw') || value.legacyProgressRaw === null || typeof value.legacyProgressRaw === 'string');
+}
+
+function validLegacyProgress(raw) {
+  if (raw === null) return true;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.version === 1 && parsed.progress !== null && typeof parsed.progress === 'object'
+      && !Array.isArray(parsed.progress)
+      && Object.values(parsed.progress).every((status) => ['new', 'review', 'mastered'].includes(status));
+  } catch { return false; }
+}
+
+function canonicalRaw(next, legacyProgressRaw) {
+  return JSON.stringify({
+    schemaVersion: 2,
+    progressRaw: next.get(PROGRESS_KEY) ?? null,
+    practiceRaw: next.get(PRACTICE_KEY) ?? null,
+    legacyProgressRaw,
+  });
 }
 
 export function createLearningStorage(nativeStorage) {
@@ -14,17 +34,37 @@ export function createLearningStorage(nativeStorage) {
     return { storage: null, state: 'unavailable' };
   }
   let current;
+  let legacyProgressRaw;
+  let legacySyncState = 'in-sync';
   try {
+    legacyProgressRaw = nativeStorage.getItem(PROGRESS_KEY);
     const raw = nativeStorage.getItem(KEY);
     if (raw === null) {
       current = new Map([
-        [PROGRESS_KEY, nativeStorage.getItem(PROGRESS_KEY)],
+        [PROGRESS_KEY, legacyProgressRaw],
         [PRACTICE_KEY, nativeStorage.getItem(PRACTICE_KEY)],
       ]);
     } else {
       const parsed = JSON.parse(raw);
       if (!validCanonical(parsed)) return { storage: null, state: 'damaged' };
       current = new Map([[PROGRESS_KEY, parsed.progressRaw], [PRACTICE_KEY, parsed.practiceRaw]]);
+      if (legacyProgressRaw !== parsed.progressRaw) {
+        if (Object.hasOwn(parsed, 'legacyProgressRaw') && legacyProgressRaw !== parsed.legacyProgressRaw) {
+          if (!validLegacyProgress(legacyProgressRaw)) return { storage: null, state: 'damaged' };
+          current.set(PROGRESS_KEY, legacyProgressRaw);
+          nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw));
+        } else {
+          try {
+            if (parsed.progressRaw === null) nativeStorage.removeItem(PROGRESS_KEY);
+            else nativeStorage.setItem(PROGRESS_KEY, parsed.progressRaw);
+            legacyProgressRaw = parsed.progressRaw;
+            nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw));
+          } catch { legacySyncState = 'out-of-sync'; }
+        }
+      } else if (parsed.legacyProgressRaw !== legacyProgressRaw) {
+        try { nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw)); }
+        catch { legacySyncState = 'out-of-sync'; }
+      }
     }
   } catch {
     return { storage: null, state: 'damaged' };
@@ -32,12 +72,29 @@ export function createLearningStorage(nativeStorage) {
 
   let draft = null;
   function persist(next) {
-    nativeStorage.setItem(KEY, JSON.stringify({
-      schemaVersion: 2,
-      progressRaw: next.get(PROGRESS_KEY) ?? null,
-      practiceRaw: next.get(PRACTICE_KEY) ?? null,
-    }));
+    const observedLegacy = nativeStorage.getItem(PROGRESS_KEY);
+    if (observedLegacy !== legacyProgressRaw && observedLegacy !== current.get(PROGRESS_KEY)) {
+      throw new Error('旧版页面同时修改了学习进度；请刷新后重试。');
+    }
+    legacyProgressRaw = observedLegacy;
+    nativeStorage.setItem(KEY, canonicalRaw(next, legacyProgressRaw));
     current = next;
+    const nextProgressRaw = next.get(PROGRESS_KEY) ?? null;
+    if (nextProgressRaw === legacyProgressRaw) {
+      legacySyncState = 'in-sync';
+      return;
+    }
+    try {
+      if (nextProgressRaw === null) nativeStorage.removeItem(PROGRESS_KEY);
+      else nativeStorage.setItem(PROGRESS_KEY, nextProgressRaw);
+      legacyProgressRaw = nextProgressRaw;
+      nativeStorage.setItem(KEY, canonicalRaw(next, legacyProgressRaw));
+      legacySyncState = 'in-sync';
+    } catch {
+      // The canonical v2 write succeeded. Keep that record available and retry the
+      // legacy mirror at the next startup or mutation; warn before any rollback.
+      legacySyncState = 'out-of-sync';
+    }
   }
   const storage = {
     getItem(key) {
@@ -59,6 +116,7 @@ export function createLearningStorage(nativeStorage) {
   return {
     storage,
     state: 'persistent',
+    getLegacySyncState() { return legacySyncState; },
     beginTransaction() {
       if (draft) throw new Error('已有导入事务。');
       draft = new Map(current);
