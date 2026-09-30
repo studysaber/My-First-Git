@@ -837,10 +837,13 @@ function mountStudyApp(root, data) {
     } else if (action?.dataset.action === 'open-simulation') {
       const node = byId.get(action.getAttribute('data-node-id'));
       if (node?.simulationId && node.id === selectedId && activeSimulationMount) {
+        const prediction = activeSimulationMount.querySelector('.prediction-disclosure');
         activeSimulationCleanup?.();
         try {
           activeSimulationCleanup = mountSimulation(activeSimulationMount, node.simulationId);
-          activeSimulationMount.querySelector('.simulation-playback')?.append(action);
+          const playback = activeSimulationMount.querySelector('.simulation-playback');
+          playback?.append(action);
+          if (playback && prediction) playback.append(prediction);
         } catch (error) {
           activeSimulationMount.textContent = `演示无法加载：${error.message}`;
         }
