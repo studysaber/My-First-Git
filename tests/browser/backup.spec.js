@@ -9,6 +9,7 @@ test('v2 export and import preserve self-rating and answered-question evidence',
   await question.getByRole('button', { name: '提交答案' }).click();
   await page.getByRole('button', { name: '标记掌握（自评）' }).click();
   const downloadPromise = page.waitForEvent('download');
+  await page.locator('#learning-progress > summary').click();
   await page.getByRole('button', { name: '导出学习进度' }).click();
   const download = await downloadPromise;
   const bundle = JSON.parse(await readFile(await download.path(), 'utf8'));

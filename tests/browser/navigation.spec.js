@@ -42,10 +42,12 @@ test('chapter core links continue in that chapter’s own study order', async ({
   const coreIds = chapterStudyPaths['ch-13'].filter((id) => nodes.find((node) => node.id === id)?.level === 'core');
   await page.goto('./#view=chapter&chapter=ch-13');
   await page.locator('[aria-labelledby="chapter-route-title"] .chapter-node-link').first().click();
+  await page.locator('.route-disclosure > summary').click();
   await expect(page.getByRole('combobox', { name: '选择学习路线' })).toHaveValue('chapter-ch-13');
   await expect(page.locator('#detail-content h2')).toHaveText(nodes.find((node) => node.id === coreIds[0]).title);
   await page.getByRole('button', { name: /下一节/ }).click();
   await expect(page.locator('#detail-content h2')).toHaveText(nodes.find((node) => node.id === coreIds[1]).title);
   await page.reload();
+  await page.locator('.route-disclosure > summary').click();
   await expect(page.getByRole('combobox', { name: '选择学习路线' })).toHaveValue('chapter-ch-13');
 });

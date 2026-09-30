@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('pendulum experiment asks for a prediction and explains the observed trend', async ({ page }) => {
   await page.goto('./#view=study&node=c9-simple-pendulum&tab=experiment');
+  await page.locator('.prediction-disclosure > summary').click();
   const prompt = page.locator('[data-prediction-id="pendulum"]');
   await expect(prompt).toContainText('0.5 m 增至 2.0 m');
   await prompt.getByLabel('变为两倍').check();

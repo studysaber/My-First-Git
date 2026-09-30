@@ -52,7 +52,29 @@ class MiniElement {
   }
   set textContent(value) { this._textContent = String(value); this.children = []; }
   get textContent() { return this._textContent + this.children.map((child) => child.textContent).join(''); }
-  append(...children) { this.children.push(...children); }
+  append(...children) {
+    for (const child of children) {
+      if (child.parentElement?.children) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
+      child.parentElement = this;
+      this.children.push(child);
+    }
+  }
+  after(...children) {
+    if (!this.parentElement) return;
+    const siblings = this.parentElement.children;
+    for (const child of children) child.parentElement = this.parentElement;
+    siblings.splice(siblings.indexOf(this) + 1, 0, ...children);
+  }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] ?? null; }
+  querySelectorAll(selector) {
+    const matches = [];
+    for (const child of this.children) {
+      const candidate = { tagName: child.tagName, attributes: child.attributes ?? {}, classes: new Set((child.className ?? '').split(/\s+/)) };
+      if (FakeControl.prototype.matches.call(candidate, selector)) matches.push(child);
+      matches.push(...(child.querySelectorAll?.(selector) ?? []));
+    }
+    return matches;
+  }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   click() {}
 }
@@ -111,6 +133,14 @@ class FakeControl {
   }
   focus() { this.ownerDocument.activeElement = this; }
   replaceChildren(...children) { this.children = children; }
+  append(...children) {
+    this.children ??= [];
+    for (const child of children) {
+      if (child.parentElement?.children) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
+      child.parentElement = this;
+      this.children.push(child);
+    }
+  }
 }
 
 function parseMarkupAttributes(markup) {
@@ -361,7 +391,9 @@ async function withMountedStudyApp(run, { matchMedia = () => ({ matches: false }
 test('live study shell, chapter, and assessment headings are Chinese', async () => {
   const { renderChapter, renderAssessment } = await import('../dist/assets/assessment.js');
   await withMountedStudyApp(({ root }) => {
-    assert.match(root.markup, /从一个知识点，走进整章物理/);
+    assert.match(root.markup, /物理知识地图/);
+    assert.match(root.markup, /学习目录/);
+    assert.doesNotMatch(root.markup, /从一个知识点，走进整章物理/);
     assert.match(root.markup, /导出学习进度/);
     assert.match(root.markup, /导入学习进度/);
     assert.doesNotMatch(root.markup, /PHYSICS · LOWER VOLUME|导出 JSON|导入 JSON/);

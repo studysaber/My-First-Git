@@ -196,6 +196,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
   function render() {
     const focusDescriptor = captureFocus();
     const nodeIndexOpen = root.querySelector('.graph-node-index')?.open === true;
+    const advancedFiltersOpen = root.querySelector('#advanced-filters')?.open === true;
     const shown = visibleNodes();
     const visibleIds = new Set(shown.map((node) => node.id));
     const visibleEdges = edges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
@@ -290,12 +291,12 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
     }).join('');
 
     const selectionHidden = currentSelectedId && nodeById.has(currentSelectedId) && !visibleIds.has(currentSelectedId);
-    root.innerHTML = `<div class="graph-controls" aria-label="图谱筛选与缩放">
+    root.innerHTML = `<div class="graph-tools"><details class="advanced-filters" id="advanced-filters"${advancedFiltersOpen ? ' open' : ''}><summary>高级筛选</summary><div class="graph-controls" aria-label="图谱筛选">
       <label>章节<select data-filter="chapterId" aria-label="按章节筛选"><option value="">全部章节</option>${chapterList.map((chapter) => `<option value="${escapeHtml(chapter.id)}"${currentFilters.chapterId === chapter.id ? ' selected' : ''}>第 ${escapeHtml(chapter.number)} 章 · ${escapeHtml(chapter.title)}</option>`).join('')}</select></label>
       <label>类型<select data-filter="type" aria-label="按知识类型筛选"><option value="all">全部类型</option>${[...new Set(nodes.map((node) => node.type))].map((type) => `<option value="${escapeHtml(type)}"${currentFilters.type === type ? ' selected' : ''}>${escapeHtml(nodeTypeLabels[type] ?? '其他知识类型')}</option>`).join('')}</select></label>
       <label>层级<select data-filter="level" aria-label="按核心或扩展筛选"><option value="all">核心与扩展</option><option value="core"${currentFilters.level === 'core' ? ' selected' : ''}>核心</option><option value="extension"${currentFilters.level === 'extension' ? ' selected' : ''}>扩展</option></select></label>
       <label>进度<select data-filter="status" aria-label="按学习进度筛选"><option value="all">全部进度</option><option value="new"${currentFilters.status === 'new' ? ' selected' : ''}>未学习</option><option value="review"${currentFilters.status === 'review' ? ' selected' : ''}>待复习</option><option value="mastered"${currentFilters.status === 'mastered' ? ' selected' : ''}>已掌握</option></select></label>
-      <div class="zoom-controls" aria-label="图谱缩放"><button type="button" data-zoom="out" aria-label="缩小图谱">−</button><button type="button" data-zoom="in" aria-label="放大图谱">+</button><button type="button" data-zoom="reset">重置视图</button></div>
+      </div></details><div class="zoom-controls" aria-label="图谱缩放"><button type="button" data-zoom="out" aria-label="缩小图谱">−</button><button type="button" data-zoom="in" aria-label="放大图谱">+</button><button type="button" data-zoom="reset">重置视图</button></div>
     </div>
     <p class="graph-count" aria-live="polite">当前显示 ${shown.length} 个知识点、${visibleEdges.length} 条关系；速学路线 ${routeCount} 站。${selectionHidden ? '当前所选知识点不在筛选结果中。' : ''}</p>
     ${!shown.length ? '<p class="graph-empty" role="status">当前筛选没有匹配的知识点。<button type="button" data-action="clear-filters">清除筛选</button></p>' : ''}

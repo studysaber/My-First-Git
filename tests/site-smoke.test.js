@@ -284,18 +284,16 @@ test('Space selects the focused route node and updates its details', async () =>
   assert.equal(thirdNode.classList.contains('is-selected'), true);
 });
 
-test('narrow screens replace the large intro with compact route context before the route', async () => {
-  const markup = (await mountPreviewApp()).innerHTML;
+test('the live reading shell gives mobile learners a closed directory before the concept', () => {
+  const app = fs.readFileSync(path.join(projectRoot, 'dist', 'assets', 'app.js'), 'utf8');
+  const markup = app.slice(app.indexOf('function mountStudyApp'), app.indexOf('export function mountApp'));
   const styles = fs.readFileSync(path.join(projectRoot, 'dist', 'assets', 'styles.css'), 'utf8');
-  assert.match(markup, /<p class="intro-mobile-summary">[^<]*(?:振动|第 9—16 章)[^<]*<\/p>/, 'mobile should retain a concise description of the route and book scope');
-
-  const intro = mobileRuleDeclarations(styles, '.intro');
-  const introPadding = (intro.padding ?? '').split(/\s+/).map((value) => Number.parseFloat(value));
-  assert.ok(introPadding.length >= 2 && introPadding[0] + introPadding[introPadding.length - 1] <= 24, 'mobile intro vertical padding should stay within a 24px budget');
-  assert.equal(mobileRuleDeclarations(styles, '.intro-mobile-summary').display, 'block', 'compact context should be visible on mobile');
-  assert.equal(mobileRuleDeclarations(styles, '.intro-description').display, 'none', 'the long desktop description should yield to its compact replacement');
-  assert.equal(mobileRuleDeclarations(styles, '.book-marker').display, 'none', 'book scope should move into the compact summary instead of taking another row');
-  assert.equal(mobileRuleDeclarations(styles, '.intro h1').position, 'absolute', 'the promotional display heading should not precede the route visually on mobile');
+  assert.doesNotMatch(markup, /class="intro"|从一个知识点，走进整章物理/);
+  assert.match(markup, /class="directory-toggle" aria-expanded="false" aria-controls="reading-directory-panel"/);
+  assert.match(markup, /《物理学》第七版 · 下册/);
+  assert.equal(mobileRuleDeclarations(styles, '.directory-toggle').display, 'block');
+  assert.equal(mobileRuleDeclarations(styles, '#reading-directory-panel').display, 'none');
+  assert.equal(mobileRuleDeclarations(styles, '.directory-open #reading-directory-panel').display, 'block');
 });
 
 test('mobile navigation uses a labeled compact selector while the graph keeps its pan/zoom surface', () => {
@@ -306,7 +304,8 @@ test('mobile navigation uses a labeled compact selector while the graph keeps it
   assert.equal(mobileRuleDeclarations(styles, '.primary-nav .nav-button').display, 'none', 'wide navigation buttons should yield to the selector');
   assert.equal(mobileRuleDeclarations(styles, '.view-select-label').display, 'block', 'the compact selector should appear on narrow screens');
   assert.match(styles, /\.graph-canvas\s*\{[^}]*overflow:\s*hidden[^}]*touch-action:\s*none/s, 'the graph should retain its pan/zoom interaction surface');
-  assert.match(styles, /\.workspace\s*\{[^}]*grid-template-columns:\s*1fr/s, 'the detail panel should stack in the page flow on mobile');
+  assert.equal(mobileRuleDeclarations(styles, '.workspace').display, 'flex', 'the detail panel should remain in mobile page flow');
+  assert.equal(mobileRuleDeclarations(styles, '.workspace')['flex-direction'], 'column', 'the directory and concept should stack on mobile');
   assert.match(styles, /\.detail-panel\s*\{[^}]*min-width:\s*0/s, 'the in-flow detail panel should shrink without forcing horizontal overflow');
 });
 
@@ -338,7 +337,7 @@ test('all loaded assets stay local and motion controls respect reduced-motion se
   assert.doesNotMatch(app, /(?:from\s*|import\s*\()\s*["']https?:\/\//i, 'runtime modules should not import over the network');
   assert.match(app, /<button class="motion-button" type="button" aria-pressed="false">暂停动态<\/button>/, 'the motion toggle should expose its action and pressed state');
   assert.match(styles, /:focus-visible[^\{]*\{[^}]*outline:\s*2px/s, 'keyboard controls should retain a visible focus indicator');
-  assert.match(styles, /\.graph-node:focus-visible \.node-orbit\s*\{[^}]*stroke:\s*var\(--amber\)/, 'SVG graph focus should remain visible after suppressing the default outline');
+  assert.match(styles, /\.graph-node:focus-visible \.node-orbit, \.graph-node:hover \.node-orbit\s*\{[^}]*stroke:\s*var\(--amber\)/, 'SVG graph focus should remain visible after suppressing the default outline');
   assert.match(styles, /@media\s*\(prefers-reduced-motion:\s*reduce\)/, 'CSS should respect the system reduced-motion preference');
   assert.match(simulations, /class="simulation-result" data-role="result" aria-live="polite"/, 'simulation results should be announced when values change');
 

@@ -379,16 +379,23 @@ export function mountSimulation(container, id) {
 
   const defaults = initialValues(definition);
   const firstState = definition.calculate(defaults);
-  const controlsMarkup = definition.controls.map(parameterMarkup).join('');
+  const controlsMarkup = definition.controls.map((parameter) => id === 'pendulum' && parameter.name === 'amplitudeDeg'
+    ? `<details class="simulation-extra"><summary>振幅角设置</summary>${parameterMarkup(parameter)}</details>`
+    : parameterMarkup(parameter)).join('');
   const dynamic = id === 'wave' || id === 'pendulum';
   container.innerHTML = `
     <section class="simulation-card" aria-labelledby="simulation-title-${escapeHtml(id)}">
-      <div class="simulation-heading"><div><span class="simulation-kicker">物理微型演示</span><h3 id="simulation-title-${escapeHtml(id)}">${escapeHtml(definition.title)}</h3></div>
-        ${dynamic ? '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>' : ''}</div>
-      <div class="simulation-controls">${controlsMarkup}</div>
-      <p class="simulation-result" data-role="result" aria-live="polite"></p>
-      <p class="simulation-validation" data-role="validation" role="status"></p>
+      <div class="simulation-heading"><h3 id="simulation-title-${escapeHtml(id)}">${id === 'pendulum' ? '改变摆长，观察周期' : escapeHtml(definition.title)}</h3></div>
+      <div class="simulation-model">
       <div class="simulation-visual" data-role="visual">${visualMarkup(id, firstState, definition)}</div>
+      <div class="simulation-playback">${dynamic ? '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>' : ''}</div>
+      </div>
+      <div class="simulation-settings">
+      <div class="simulation-controls">${controlsMarkup}</div>
+      ${id === 'pendulum' ? '<p class="period-readout">周期 <i>T</i><output data-role="period"></output><small>小角度近似 · 忽略阻力</small></p>' : ''}
+      <p class="simulation-result" data-role="result" aria-live="polite"></p>
+      </div>
+      <p class="simulation-validation" data-role="validation" role="status"></p>
     </section>`;
 
   const controls = [...container.querySelectorAll('[data-param]')];
@@ -475,6 +482,8 @@ export function mountSimulation(container, id) {
       result.textContent = definition.summary(state, clock.time);
       validation.textContent = initialized && dynamic ? '参数已更新，模拟时间重置为 0 s。' : '';
       currentState = state;
+      const periodReadout = container.querySelector('[data-role="period"]');
+      if (periodReadout) periodReadout.textContent = `${state.period.toFixed(2)} s`;
       visual.innerHTML = visualMarkup(id, state, definition, clock.time);
       syncWaveAnimation();
     } catch (error) {
