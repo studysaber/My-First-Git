@@ -103,7 +103,7 @@ await expect(page.locator('.simulation-plot')).toContainText('等温膨胀');
 
 ### Task 4: Replace the old template with the approved reading workspace
 
-**Files:** Modify `dist/assets/app.js`, `dist/assets/styles.css`, `dist/index.html`; optionally Create `dist/assets/reading-navigation.js`; Test `tests/browser/graph.spec.js`, `tests/browser/layout.spec.js`, `tests/browser/visual-audit.spec.js`, Create `tests/browser/reading-design.spec.js`; Update `docs/content-coverage.md`, `README.md`, `PRODUCT.md`.
+**Files:** Modify `dist/assets/app.js`, `dist/assets/styles.css`, `dist/index.html`; `dist/assets/simulations.js` may receive bounded semantic markup changes to align playback, controls and readout with the approved experiment composition without changing physics or parameter ranges. Optionally Create `dist/assets/reading-navigation.js`; Test `tests/browser/graph.spec.js`, `tests/browser/layout.spec.js`, `tests/browser/visual-audit.spec.js`, Create `tests/browser/reading-design.spec.js`; Update `docs/content-coverage.md`, `README.md`, `PRODUCT.md`.
 
 **Interfaces:** Preserve node/tab/view URL semantics and all prior workflows; consume review button/queue from Task 2. Approved reference is `docs/design-reference/handbook-preview.png`; retain user-pinned design even if the concept-seed tooling suggests unrelated catalog styles. Seed key `7886ee29` is provenance, not permission to replace the chosen direction.
 
