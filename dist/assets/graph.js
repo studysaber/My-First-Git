@@ -20,11 +20,11 @@ function routeLayout(routeNodes) {
 }
 
 const edgeStyles = new Map([
-  ['先修', { color: '#73d9c7', dash: '' }],
-  ['推导/解释', { color: '#82b6ff', dash: '7 3' }],
-  ['类比/迁移', { color: '#e7c889', dash: '2 4' }],
-  ['对比', { color: '#e79ab3', dash: '8 4 2 4' }],
-  ['应用', { color: '#b9a1ff', dash: '3 3' }],
+  ['先修', { color: 'var(--plot-green, #24664F)', dash: '' }],
+  ['推导/解释', { color: 'var(--plot-blue, #275F91)', dash: '7 3' }],
+  ['类比/迁移', { color: 'var(--plot-ochre, #8A5A12)', dash: '2 4' }],
+  ['对比', { color: 'var(--plot-comparison, #96506B)', dash: '8 4 2 4' }],
+  ['应用', { color: 'var(--plot-purple, #71539A)', dash: '3 3' }],
 ]);
 
 const nodeTypeLabels = Object.freeze({
@@ -196,6 +196,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
   function render() {
     const focusDescriptor = captureFocus();
     const nodeIndexOpen = root.querySelector('.graph-node-index')?.open === true;
+    const advancedFiltersOpen = root.querySelector('#advanced-filters')?.open === true;
     const shown = visibleNodes();
     const visibleIds = new Set(shown.map((node) => node.id));
     const visibleEdges = edges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
@@ -267,7 +268,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
       const from = activePositions.get(edge.source);
       const to = activePositions.get(edge.target);
       if (!from || !to) return '';
-      const style = edgeStyles.get(edge.type) ?? { color: '#9eacc0', dash: '3 4' };
+      const style = edgeStyles.get(edge.type) ?? { color: 'var(--plot-axis, #637067)', dash: '3 4' };
       const midX = (from.x + to.x) / 2;
       const midY = (from.y + to.y) / 2;
       const bend = Math.max(-36, Math.min(36, (to.x - from.x) * 0.12));
@@ -290,12 +291,12 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
     }).join('');
 
     const selectionHidden = currentSelectedId && nodeById.has(currentSelectedId) && !visibleIds.has(currentSelectedId);
-    root.innerHTML = `<div class="graph-controls" aria-label="图谱筛选与缩放">
+    root.innerHTML = `<div class="graph-tools"><details class="advanced-filters" id="advanced-filters"${advancedFiltersOpen ? ' open' : ''}><summary>高级筛选</summary><div class="graph-controls" aria-label="图谱筛选">
       <label>章节<select data-filter="chapterId" aria-label="按章节筛选"><option value="">全部章节</option>${chapterList.map((chapter) => `<option value="${escapeHtml(chapter.id)}"${currentFilters.chapterId === chapter.id ? ' selected' : ''}>第 ${escapeHtml(chapter.number)} 章 · ${escapeHtml(chapter.title)}</option>`).join('')}</select></label>
       <label>类型<select data-filter="type" aria-label="按知识类型筛选"><option value="all">全部类型</option>${[...new Set(nodes.map((node) => node.type))].map((type) => `<option value="${escapeHtml(type)}"${currentFilters.type === type ? ' selected' : ''}>${escapeHtml(nodeTypeLabels[type] ?? '其他知识类型')}</option>`).join('')}</select></label>
       <label>层级<select data-filter="level" aria-label="按核心或扩展筛选"><option value="all">核心与扩展</option><option value="core"${currentFilters.level === 'core' ? ' selected' : ''}>核心</option><option value="extension"${currentFilters.level === 'extension' ? ' selected' : ''}>扩展</option></select></label>
       <label>进度<select data-filter="status" aria-label="按学习进度筛选"><option value="all">全部进度</option><option value="new"${currentFilters.status === 'new' ? ' selected' : ''}>未学习</option><option value="review"${currentFilters.status === 'review' ? ' selected' : ''}>待复习</option><option value="mastered"${currentFilters.status === 'mastered' ? ' selected' : ''}>已掌握</option></select></label>
-      <div class="zoom-controls" aria-label="图谱缩放"><button type="button" data-zoom="out" aria-label="缩小图谱">−</button><button type="button" data-zoom="in" aria-label="放大图谱">+</button><button type="button" data-zoom="reset">重置视图</button></div>
+      </div></details><div class="zoom-controls" aria-label="图谱缩放"><button type="button" data-zoom="out" aria-label="缩小图谱">−</button><button type="button" data-zoom="in" aria-label="放大图谱">+</button><button type="button" data-zoom="reset">重置视图</button></div>
     </div>
     <p class="graph-count" aria-live="polite">当前显示 ${shown.length} 个知识点、${visibleEdges.length} 条关系；速学路线 ${routeCount} 站。${selectionHidden ? '当前所选知识点不在筛选结果中。' : ''}</p>
     ${!shown.length ? '<p class="graph-empty" role="status">当前筛选没有匹配的知识点。<button type="button" data-action="clear-filters">清除筛选</button></p>' : ''}
@@ -303,7 +304,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
     <div class="graph-canvas${currentFilters.routeOnly ? ' route-canvas' : currentFilters.chapterId ? ' chapter-focus-canvas' : ' graph-overview-canvas'}" style="aspect-ratio:${currentFilters.routeOnly ? routeWidth : fullLayout.width}/${currentFilters.routeOnly ? routeHeight : currentFilters.chapterId ? CHAPTER_FOCUS_HEIGHT : fullLayout.height}" aria-label="完整知识图谱，可拖动平移并用滚轮缩放">
       <svg class="route-graph${currentFilters.routeOnly ? ' route-only-graph' : ''}" viewBox="0 0 ${currentFilters.routeOnly ? routeWidth : fullLayout.width} ${currentFilters.routeOnly ? routeHeight : currentFilters.chapterId ? CHAPTER_FOCUS_HEIGHT : fullLayout.height}" role="group" aria-labelledby="graph-title graph-description" preserveAspectRatio="xMidYMid meet">
         <title id="graph-title">第 9 至 16 章物理知识关系图</title><desc id="graph-description">节点按章节成组；每个节点都可用键盘选择，连线有方向、类型和文字说明。</desc>
-        <defs><marker id="edge-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#91a9c3"/></marker></defs>
+        <defs><marker id="edge-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--plot-axis, #637067)"/></marker></defs>
         <g class="graph-world" transform="translate(${panX} ${panY}) scale(${zoom})">
           ${edgeMarkup}${overview ? '' : `<path class="route-trace" d="${routePath}" aria-hidden="true"/>`}${currentFilters.routeOnly ? compactRouteMarkup : chapterMarkup}
         </g>

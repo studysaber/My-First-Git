@@ -661,6 +661,24 @@ test('Carnot plot uses calculated segments and equal reservoirs remove enclosed 
   cleanup();
 });
 
+test('Carnot state markers preserve ideal gas coordinates when temperatures coincide', () => {
+  const container = new FakeSimulationContainer();
+  const cleanup = mountSimulation(container, 'carnot');
+  const hot = container.controls.find((item) => item.dataset.param === 'hotK');
+  hot.value = '300'; hot.dispatch('input');
+  const markup = container.querySelector('[data-role="visual"]').innerHTML;
+  const markers = [...markup.matchAll(/<circle\b([^>]*data-cycle-state[^>]*)>/g)].map(([, attributes]) => attributesFrom(attributes));
+  assert.equal(markers.length, 4);
+  const expected = [[178.57, 44.55], [307.14, 117.27], [307.14, 117.27], [178.57, 44.55]];
+  markers.forEach((marker, index) => {
+    closeTo(Number(marker.cx), expected[index][0], 0.01);
+    closeTo(Number(marker.cy), expected[index][1], 0.01);
+  });
+  const curves = [...markup.matchAll(/<path\b([^>]*data-cycle-segment[^>]*)>/g)].map(([, attributes]) => attributesFrom(attributes));
+  assert.equal(curves.filter((curve) => curve['marker-end']).length, 2);
+  cleanup();
+});
+
 test('photoelectric and relativity show energy and same-frame clock comparisons', () => {
   const photo = new FakeSimulationContainer(); const closePhoto = mountSimulation(photo, 'photoelectric');
   assert.match(photo.querySelector('[data-role="visual"]').innerHTML, /Kₘₐₓ/);

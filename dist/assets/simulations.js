@@ -267,24 +267,24 @@ function wavePathData(state, time) {
   return path.join(' ');
 }
 
-function plotSvg(id, state, waveTime = 0) {
+function plotGeometry(id, state, waveTime = 0) {
   if (id === 'pendulum') {
     const bob = pendulumState({ length: state.length, gravity: state.gravity, amplitudeRad: state.amplitudeDeg * Math.PI / 180, time: waveTime });
     const bobX = 140 + bob.x * 50, bobY = 18 + bob.y * 50;
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="小角单摆，悬点固定，摆长比例为每米50像素"><circle cx="140" cy="18" r="4" fill="#F3BD65"/><line x1="140" y1="18" x2="${bobX.toFixed(2)}" y2="${bobY.toFixed(2)}" stroke="#82B6FF" stroke-width="2"/><circle data-pendulum-bob="true" cx="${bobX.toFixed(2)}" cy="${bobY.toFixed(2)}" r="9" fill="#73D9C7"/><text x="16" y="136">ℓ = ${formatNumber(state.length)} m；t = ${formatNumber(waveTime)} s</text><text x="18" y="22">小角近似</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="小角单摆，悬点固定，摆长比例为每米50像素"><circle cx="140" cy="18" r="4" fill="var(--plot-ochre, #8A5A12)"/><line x1="140" y1="18" x2="${bobX.toFixed(2)}" y2="${bobY.toFixed(2)}" stroke="var(--plot-blue, #275F91)" stroke-width="2"/><circle data-pendulum-bob="true" cx="${bobX.toFixed(2)}" cy="${bobY.toFixed(2)}" r="9" fill="var(--plot-green, #24664F)"/><text x="16" y="136">t = ${formatNumber(waveTime)} s</text></svg>`;
   }
   if (id === 'wave') {
     const timeNote = state.mode === 'standing' ? '驻波随时间振荡，节点固定' : '行波形状随时间沿 +x 方向传播';
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="${state.mode === 'standing' ? '驻波' : '行波'}位移曲线，${timeNote}；x：0—6 m，y：−11—11 mm"><path d="M20 75H260 M20 20V130" stroke="#52677F"/><path data-wave-path="true" d="${wavePathData(state, waveTime)}" fill="none" stroke="#73D9C7" stroke-width="2"/><text x="220" y="139">6 m</text><text x="22" y="18">11 mm</text><text x="22" y="135">−11 mm</text><text x="200" y="18">x：0—6 m</text><text x="185" y="32">y：−11—11 mm</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="${state.mode === 'standing' ? '驻波' : '行波'}位移曲线，${timeNote}；x：0—6 m，y：−11—11 mm"><path d="M20 75H260 M20 20V130" stroke="var(--plot-axis, #637067)"/><path data-wave-path="true" d="${wavePathData(state, waveTime)}" fill="none" stroke="var(--plot-green, #24664F)" stroke-width="2"/><text x="220" y="139">6 m</text><text x="22" y="18">11 mm</text><text x="22" y="135">−11 mm</text><text x="200" y="18">x：0—6 m</text><text x="185" y="32">y：−11—11 mm</text></svg>`;
   }
   if (id === 'interference') {
     const physical = { wavelength: state.wavelengthNm * 1e-9, slitSeparation: state.slitSeparationMm * 1e-3, screenDistance: state.screenDistance };
     const bands = Array.from({ length: 1201 }, (_, index) => {
       const y = (index - 600) * 0.00005;
       const intensity = doubleSlitIntensity({ ...physical, y });
-      return `<line x1="215" y1="${(20 + index * 0.09).toFixed(2)}" x2="245" y2="${(20 + index * 0.09).toFixed(2)}" stroke="#73D9C7" stroke-width="0.09" opacity="${intensity.toFixed(3)}"/>`;
+      return `<line x1="215" y1="${(20 + index * 0.09).toFixed(2)}" x2="245" y2="${(20 + index * 0.09).toFixed(2)}" stroke="var(--plot-green, #24664F)" stroke-width="0.09" opacity="${intensity.toFixed(3)}"/>`;
     }).join('');
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="理想等强窄双缝；观察屏 y：−30—30 mm，无单缝衍射包络"><path d="M52 20V72 M52 78V130" stroke="#82B6FF" stroke-width="5"/><rect data-slit="left" x="48" y="72" width="8" height="2" fill="#73D9C7"/><rect data-slit="right" x="48" y="76" width="8" height="2" fill="#73D9C7"/><path d="M205 18V132" stroke="#52677F" stroke-width="3"/>${bands}<text x="16" y="143">双缝 d=${formatNumber(state.slitSeparationMm)} mm</text><text x="184" y="143">屏 −30—30 mm</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="理想等强窄双缝；观察屏 y：−30—30 mm，无单缝衍射包络"><path d="M52 20V72 M52 78V130" stroke="var(--plot-blue, #275F91)" stroke-width="5"/><rect data-slit="left" x="48" y="72" width="8" height="2" fill="var(--plot-green, #24664F)"/><rect data-slit="right" x="48" y="76" width="8" height="2" fill="var(--plot-green, #24664F)"/><path d="M205 18V132" stroke="var(--plot-axis, #637067)" stroke-width="3"/>${bands}<text x="16" y="143">双缝 d=${formatNumber(state.slitSeparationMm)} mm</text><text x="184" y="143">屏 −30—30 mm</text></svg>`;
   }
   if (id === 'maxwell') {
     const line = (temperature) => Array.from({ length: 101 }, (_, index) => {
@@ -295,18 +295,42 @@ function plotSvg(id, state, waveTime = 0) {
     const tailStep = 50, tailEnd = state.speeds.rms * 8;
     let tail = 0;
     for (let v = 5000; v < tailEnd; v += tailStep) tail += (maxwellDensity({ speed: v, temperature: state.temperature, molarMass: state.molarMass }) + maxwellDensity({ speed: v + tailStep, temperature: state.temperature, molarMass: state.molarMass })) * tailStep / 2;
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="麦克斯韦速率分布，固定 x：0—5000 m/s，y：0—0.004 s/m；窗口外概率约 ${formatNumber(tail * 100, 2)}%"><path d="M24 122H256 M24 122V22" stroke="#52677F"/><path d="${line(300)}" fill="none" stroke="#82B6FF" stroke-width="2"/><path d="${line(state.temperature)}" fill="none" stroke="#73D9C7" stroke-width="2"/><text x="205" y="139">5000 m/s</text><text x="20" y="19">0.004 s/m</text><text x="26" y="137">0</text><text x="140" y="19">300 K 参考</text><text x="90" y="139">窗口外 ${formatNumber(tail * 100, 2)}%</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="麦克斯韦速率分布，固定 x：0—5000 m/s，y：0—0.004 s/m；虚线为300 K参考，实线为当前温度；窗口外概率约 ${formatNumber(tail * 100, 2)}%"><path d="M24 122H256 M24 122V22" stroke="var(--plot-axis, #637067)"/><path d="${line(300)}" fill="none" stroke="var(--plot-blue, #275F91)" stroke-width="2" stroke-dasharray="5 3"/><path d="${line(state.temperature)}" fill="none" stroke="var(--plot-green, #24664F)" stroke-width="2"/><text x="205" y="139">5000 m/s</text><text x="20" y="19">0.004 s/m</text><text x="26" y="137">0</text><text x="130" y="19">虚线：300 K 参考</text><text x="130" y="33">实线：${formatNumber(state.temperature)} K</text><text x="90" y="139">窗口外 ${formatNumber(tail * 100, 2)}%</text></svg>`;
   }
   if (id === 'carnot') {
     const points = state.cycle.segments.flatMap((segment) => segment.points);
     const maxV = Math.max(...points.map((point) => point.volume)) * 1.05;
     const maxP = Math.max(...points.map((point) => point.pressure)) * 1.1;
-    const segments = state.cycle.segments.map((segment, index) => `<path data-cycle-segment="${index}" d="${segment.points.map((point, i) => `${i ? 'L' : 'M'}${(28 + point.volume / maxV * 220).toFixed(2)} ${(122 - point.pressure / maxP * 100).toFixed(2)}`).join(' ')}" fill="none" stroke="${index % 2 ? '#82B6FF' : '#73D9C7'}" stroke-width="2"/>`).join('');
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="卡诺循环 p-V 图，四段按高温等温、绝热膨胀、低温等温、绝热压缩顺序；箭头仅表示过程方向"><path d="M28 122H254 M28 122V18" stroke="#52677F"/>${segments}<text x="186" y="143">V：0—${formatNumber(maxV)} m³</text><text x="22" y="17">p：0—${formatNumber(maxP)} Pa</text><text x="128" y="45">1→2→3→4→1</text></svg>`;
+    const x = (volume) => 50 + volume / maxV * 270;
+    const y = (pressure) => 190 - pressure / maxP * 160;
+    const pathData = (curve) => curve.map((point, i) => `${i ? 'L' : 'M'}${x(point.volume).toFixed(2)} ${y(point.pressure).toFixed(2)}`).join(' ');
+    const roles = ['var(--plot-green, #24664F)', 'var(--plot-blue, #275F91)', 'var(--plot-ochre, #8A5A12)', 'var(--plot-purple, #71539A)'];
+    const dashes = ['', '7 3', '2 3', '7 3 2 3'];
+    const collapsed = state.hotK === state.coldK;
+    const explanation = collapsed
+      ? '两热源等温：状态 1 与 4、2 与 3 重合；等温线往返重合，绝热段无变化，围成的面积为 0，净功为 0。'
+      : '按 1→2→3→4→1 完成顺时针循环；p-V 图围成的面积等于每循环气体对外的净功 W = ∮p dV。';
+    const definitions = roles.map((color, index) => `<marker id="carnot-arrow-${index}" viewBox="0 0 10 10" refX="12" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="${color}"/></marker>`).join('');
+    const segments = state.cycle.segments.map((segment, index) => {
+      const moving = !collapsed || index % 2 === 0;
+      return `<path data-cycle-segment="${index}" d="${pathData(segment.points)}" fill="none" stroke="${roles[index]}" stroke-width="2" stroke-dasharray="${dashes[index]}"${moving ? ` marker-end="url(#carnot-arrow-${index})"` : ''}><title>${index + 1}→${(index + 1) % 4 + 1}：${segment.name}${moving ? '' : '（无变化）'}</title></path>`;
+    }).join('');
+    // Labels move away from the actual vertices; coincident states retain identical coordinates.
+    const offsets = [[-9, -10], [9, -8], [9, 18], [-9, 18]];
+    const vertices = state.cycle.segments.map((segment, index) => {
+      const point = segment.points[0];
+      return `<circle data-cycle-state="${index + 1}" cx="${x(point.volume).toFixed(2)}" cy="${y(point.pressure).toFixed(2)}" r="3" fill="var(--plot-ink, #303D35)"/><text data-cycle-state-label="${index + 1}" x="${(x(point.volume) + offsets[index][0]).toFixed(2)}" y="${(y(point.pressure) + offsets[index][1]).toFixed(2)}" text-anchor="${index === 1 || index === 2 ? 'start' : 'end'}">${index + 1}</text>`;
+    }).join('');
+    const ticks = [0.25, 0.5, 0.75].map((fraction) => `<path d="M${x(fraction * maxV)} 190v4 M46 ${y(fraction * maxP)}h4" stroke="var(--plot-axis, #637067)"/><text data-cycle-tick="volume" x="${x(fraction * maxV)}" y="205" text-anchor="middle">${formatNumber(fraction * maxV, 1)}</text><text data-cycle-tick="pressure" x="43" y="${y(fraction * maxP) + 3}" text-anchor="end">${formatNumber(fraction * maxP, 1)}</text>`).join('');
+    const legend = state.cycle.segments.map((segment, index) => {
+      const lx = index % 2 ? 190 : 18, ly = 242 + Math.floor(index / 2) * 23;
+      return `<path d="M${lx} ${ly - 4}h22" stroke="${roles[index]}" stroke-width="2" stroke-dasharray="${dashes[index]}"/><text x="${lx + 28}" y="${ly}">${index + 1}→${(index + 1) % 4 + 1} ${segment.name}${collapsed && index % 2 ? '（无变化）' : ''}</text>`;
+    }).join('');
+    return `<svg class="simulation-plot" viewBox="0 0 360 296" role="img" aria-label="卡诺循环 p-V 图。${explanation} 四段线型分别为实线、长虚线、点线、点划线。"><defs>${definitions}</defs><path d="M50 190H325 M50 190V25" stroke="var(--plot-axis, #637067)"/>${ticks}${segments}${vertices}<text x="50" y="16">p：0—${formatNumber(maxP)} Pa</text><text x="180" y="220">V：0—${formatNumber(maxV)} m³</text><text x="43" y="205">0</text>${legend}<text x="18" y="287">${collapsed ? '等温线重合；围成面积 = 净功 = 0' : '围成面积 = 每循环净功 W = ∮p dV'}</text></svg>`;
   }
   if (id === 'relativity') {
     const width = 110 * state.lengthContractionFactor;
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="实验室系的时钟与长度比较"><text x="17" y="28">实验室时钟 t：1 s</text><rect x="145" y="17" width="110" height="12" fill="#82B6FF"/><text x="17" y="55">运动钟 τ：${formatNumber(1 / state.gamma, 2)} s</text><rect x="145" y="44" width="${width.toFixed(2)}" height="12" fill="#73D9C7"/><text x="17" y="89">静止长 L₀：1 m</text><rect x="145" y="78" width="110" height="12" fill="#82B6FF"/><text x="17" y="116">运动长 L：${formatNumber(state.lengthContractionFactor, 2)} m</text><rect x="145" y="105" width="${width.toFixed(2)}" height="12" fill="#73D9C7"/><text x="19" y="140">长度端点须在实验室系同时测量</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="实验室系的时钟与长度比较"><text x="17" y="28">实验室时钟 t：1 s</text><rect x="145" y="17" width="110" height="12" fill="var(--plot-blue, #275F91)"/><text x="17" y="55">运动钟 τ：${formatNumber(1 / state.gamma, 2)} s</text><rect x="145" y="44" width="${width.toFixed(2)}" height="12" fill="var(--plot-green, #24664F)"/><text x="17" y="89">静止长 L₀：1 m</text><rect x="145" y="78" width="110" height="12" fill="var(--plot-blue, #275F91)"/><text x="17" y="116">运动长 L：${formatNumber(state.lengthContractionFactor, 2)} m</text><rect x="145" y="105" width="${width.toFixed(2)}" height="12" fill="var(--plot-green, #24664F)"/><text x="19" y="140">长度端点须在实验室系同时测量</text></svg>`;
   }
   if (id === 'photoelectric') {
     const work = Number(state.workFunctionEv ?? 2);
@@ -321,20 +345,28 @@ function plotSvg(id, state, waveTime = 0) {
       return `${index ? 'L' : 'M'}${x(f).toFixed(2)} ${y(Math.max(0, PLANCK_CONSTANT_EV_S * f * 1e14 - work)).toFixed(2)}`;
     }).join(' ') : '';
     const marker = state.emitted
-      ? `<circle cx="${x(frequency).toFixed(2)}" cy="${y(state.maxKineticEnergyEv).toFixed(2)}" r="4" fill="#F3BD65"/>`
-      : `<path d="M${x(frequency).toFixed(2)} 113V46" stroke="#F3BD65" stroke-dasharray="3 4"/><text x="105" y="29">hν &lt; Φ：无逸出</text>`;
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="光电效应最大动能与频率曲线；入射光指向金属，阈频以下无逸出"><path d="M15 40L52 40" stroke="#B39BFF" stroke-width="3"/><path d="M52 30V50" stroke="#82B6FF" stroke-width="5"/><text x="14" y="23">光 → 金属</text><path d="M38 113H258 M38 113V33" stroke="#52677F"/>${line ? `<path d="${line}" fill="none" stroke="#73D9C7" stroke-width="2"/>` : ''}${marker}${state.emitted ? '<text x="146" y="29">hν = Φ + Kₘₐₓ</text>' : ''}<text x="200" y="139">ν (×10¹⁴ Hz)</text><text x="42" y="130">Kₘₐₓ (eV)</text></svg>`;
+      ? `<circle cx="${x(frequency).toFixed(2)}" cy="${y(state.maxKineticEnergyEv).toFixed(2)}" r="4" fill="var(--plot-ochre, #8A5A12)"/>`
+      : `<path d="M${x(frequency).toFixed(2)} 113V46" stroke="var(--plot-ochre, #8A5A12)" stroke-dasharray="3 4"/><text x="105" y="29">hν &lt; Φ：无逸出</text>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="光电效应最大动能与频率曲线；入射光指向金属，阈频以下无逸出"><path d="M15 40L52 40" stroke="var(--plot-purple, #71539A)" stroke-width="3"/><path d="M52 30V50" stroke="var(--plot-blue, #275F91)" stroke-width="5"/><text x="14" y="23">光 → 金属</text><path d="M38 113H258 M38 113V33" stroke="var(--plot-axis, #637067)"/>${line ? `<path d="${line}" fill="none" stroke="var(--plot-green, #24664F)" stroke-width="2"/>` : ''}${marker}${state.emitted ? '<text x="146" y="29">hν = Φ + Kₘₐₓ</text>' : ''}<text x="200" y="139">ν (×10¹⁴ Hz)</text><text x="42" y="130">Kₘₐₓ (eV)</text></svg>`;
   }
   const rows = particleFamilies.interactions.map((interaction, index) => {
     const y = 30 + index * 27;
     const active = interaction.id === state.selected.id;
-    return `<g opacity="${active ? '1' : '0.5'}"><rect x="20" y="${y}" width="240" height="21" rx="5" fill="${active ? '#173C4A' : '#10243B'}" stroke="${active ? '#73D9C7' : '#52677F'}"/><text x="30" y="${y + 15}">${escapeHtml(interaction.name)}</text><text x="125" y="${y + 15}">${escapeHtml(interaction.mediators.join('、') || '标准模型之外')}</text></g>`;
+    return `<g><rect x="20" y="${y}" width="240" height="21" rx="5" fill="${active ? 'var(--plot-selection, #E8F1EC)' : 'var(--plot-surface, #FFFFFF)'}" stroke="${active ? 'var(--plot-green, #24664F)' : 'var(--plot-axis, #637067)'}" stroke-width="${active ? '2' : '1'}"/><text x="30" y="${y + 15}"${active ? ' font-weight="700"' : ''}>${escapeHtml(interaction.name)}</text><text x="125" y="${y + 15}">${escapeHtml(interaction.mediators.join('、') || '标准模型之外')}</text></g>`;
   }).join('');
   return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="四种基本相互作用和媒介粒子列表">${rows}<text x="22" y="145">物质粒子：夸克 · 轻子</text></svg>`;
 }
 
+function plotSvg(id, state, waveTime = 0) {
+  // An explicit text role stays readable even while the surrounding stylesheet is being migrated.
+  return plotGeometry(id, state, waveTime).replaceAll('<text ', '<text style="fill:var(--plot-ink, #303D35)" ');
+}
+
 function visualMarkup(id, state, definition, waveTime = 0) {
-  return `${plotSvg(id, state, waveTime)}<p class="simulation-fallback">${escapeHtml(definition.fallback)}</p>`;
+  const areaNote = id === 'carnot' ? (state.hotK === state.coldK
+    ? '两热源等温时，状态 1 与 4、2 与 3 重合，绝热段无变化；等温线往返重合，围成面积与净功为 0。'
+    : 'p-V 图中，顺时针循环围成的面积等于每循环气体对外做的净功 W = ∮p dV。') : '';
+  return `${plotSvg(id, state, waveTime)}<p class="simulation-fallback${id === 'pendulum' ? ' screen-reader-only' : ''}">${escapeHtml(definition.fallback)}${areaNote}</p>`;
 }
 
 function initialValues(definition) {
@@ -347,16 +379,25 @@ export function mountSimulation(container, id) {
 
   const defaults = initialValues(definition);
   const firstState = definition.calculate(defaults);
-  const controlsMarkup = definition.controls.map(parameterMarkup).join('');
+  const controlsMarkup = definition.controls.map((parameter) => id === 'pendulum' && parameter.name === 'amplitudeDeg'
+    ? `<details class="simulation-extra"><summary>振幅角设置</summary>${parameterMarkup(parameter)}</details>`
+    : parameterMarkup(parameter)).join('');
   const dynamic = id === 'wave' || id === 'pendulum';
   container.innerHTML = `
     <section class="simulation-card" aria-labelledby="simulation-title-${escapeHtml(id)}">
-      <div class="simulation-heading"><div><span class="simulation-kicker">物理微型演示</span><h3 id="simulation-title-${escapeHtml(id)}">${escapeHtml(definition.title)}</h3></div>
-        ${dynamic ? '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>' : ''}</div>
-      <div class="simulation-controls">${controlsMarkup}</div>
-      <p class="simulation-result" data-role="result" aria-live="polite"></p>
-      <p class="simulation-validation" data-role="validation" role="status"></p>
+      <div class="simulation-heading"><h3 id="simulation-title-${escapeHtml(id)}">${id === 'pendulum' ? '改变摆长，观察周期' : escapeHtml(definition.title)}</h3></div>
+      <div class="simulation-model">
       <div class="simulation-visual" data-role="visual">${visualMarkup(id, firstState, definition)}</div>
+      <div class="simulation-playback">${dynamic ? '<button class="simulation-pause" type="button" data-action="pause" aria-pressed="false">暂停演示</button><button type="button" data-action="step">单步 +0.1 s</button>' : ''}</div>
+      </div>
+      <div class="simulation-settings">
+      <div class="simulation-controls">${controlsMarkup}</div>
+      ${id === 'pendulum' ? '<p class="period-readout">周期 <i>T</i><output data-role="period"></output><small>小角度近似 · 忽略阻力</small></p>' : ''}
+      ${id === 'pendulum' ? '<details class="simulation-state"><summary>完整状态与模型说明</summary>' : ''}
+      <p class="simulation-result" data-role="result" aria-live="polite"></p>
+      ${id === 'pendulum' ? '</details>' : ''}
+      </div>
+      <p class="simulation-validation" data-role="validation" role="status"></p>
     </section>`;
 
   const controls = [...container.querySelectorAll('[data-param]')];
@@ -443,6 +484,8 @@ export function mountSimulation(container, id) {
       result.textContent = definition.summary(state, clock.time);
       validation.textContent = initialized && dynamic ? '参数已更新，模拟时间重置为 0 s。' : '';
       currentState = state;
+      const periodReadout = container.querySelector('[data-role="period"]');
+      if (periodReadout) periodReadout.textContent = `${state.period.toFixed(2)} s`;
       visual.innerHTML = visualMarkup(id, state, definition, clock.time);
       syncWaveAnimation();
     } catch (error) {

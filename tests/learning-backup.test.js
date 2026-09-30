@@ -36,3 +36,19 @@ test('unknown schemas and node identifiers are rejected before any writes', () =
   assert.throws(() => previewBackup('{"schemaVersion":3}', { progress, practice, knownNodes, knownQuestions }), /不支持的进度文件版本/);
   assert.throws(() => previewBackup('{"version":1,"progress":{"foreign":"mastered"}}', { progress, practice, knownNodes, knownQuestions }), /foreign/);
 });
+
+test('backup preview reports self assessment and practice additions and conflicts separately', () => {
+  const progress = createProgressStore(null), practice = createPracticeStore(null);
+  progress.setStatus('c9-shm', 'mastered');
+  const q = questions.find((question) => question.id === 'c9-shm-concept');
+  practice.submit(q, q.answer);
+  const incomingProgress = createProgressStore(null), incomingPractice = createPracticeStore(null);
+  incomingProgress.setStatus('c9-shm', 'review');
+  incomingPractice.submit(q, 'wrong');
+  const preview = previewBackup(exportBackupJson(incomingProgress, incomingPractice), { progress, practice, knownNodes, knownQuestions });
+  assert.equal(preview.progress.added, 0);
+  assert.equal(preview.progress.conflicts, 1);
+  assert.equal(preview.practice.added, 0);
+  assert.equal(preview.practice.conflicts, 1);
+  assert.equal(preview.practice.imported, 1);
+});

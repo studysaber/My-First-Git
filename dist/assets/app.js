@@ -10,6 +10,7 @@ import { formulaLatexFor, renderFormula } from './math.js';
 import { createLearningStorage } from './learning-storage.js';
 import { exportBackupJson, previewBackup } from './learning-backup.js';
 import { getPrediction, gradePrediction } from './experiment-predictions.js';
+import { currentDueQuestions, millisecondsUntilNextDay, practiceRecordLabel } from './review.js';
 
 const previewRoute = {
   title: '从振动到光学',
@@ -85,6 +86,8 @@ function mountStudyApp(root, data) {
   let restoringLocation = false;
   let activeSimulationCleanup = null;
   let activeSimulationMount = null;
+  let destroyed = false;
+  let rolloverTimer = null;
   const experimentPredictions = new Map();
   let userMotionPaused = false;
   const motionQuery = typeof window !== 'undefined' ? window.matchMedia?.('(prefers-reduced-motion: reduce)') : null;
@@ -117,23 +120,19 @@ function mountStudyApp(root, data) {
             <label class="view-select-label" for="view-select"><span class="is-hidden">切换学习视图</span><select id="view-select" aria-label="切换学习视图">${['速学路线', '完整图谱', '章节地图', '教材评估'].map((label) => `<option value="${escapeHtml(label)}"${label === activeView ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
           </nav>
           <label class="search-wrap"><span class="is-hidden">搜索知识点</span><input class="search-input" type="search" placeholder="搜索概念、公式或关键词" aria-label="搜索概念、公式或关键词" autocomplete="off"></label>
-          <button class="motion-button" type="button" aria-pressed="false">暂停动态</button>
+          <button type="button" class="today-review" data-action="today-review" aria-expanded="false" aria-controls="review-queue">今日复习（0）</button>
         </div>
       </header>
 
-      <section class="intro" aria-labelledby="page-title">
-        <div>
-          <h1 id="page-title">从一个知识点，走进整章物理</h1>
-          <p class="intro-description">看清模型和条件，试着预测实验，再用练习检验理解。</p>
-          <p class="intro-mobile-summary">${escapeHtml(currentRoute.title)} · 第 9—16 章 ·《物理学》第七版下册</p>
-        </div>
-        <div class="book-marker"><strong>第 9—16 章</strong><span>《物理学》第七版 · 下册</span></div>
-      </section>
-
-      <p class="view-status" aria-live="polite">当前视图：<span>${escapeHtml(activeView)}</span></p>
+      <p class="view-status screen-reader-only" aria-live="polite">当前视图：<span>${escapeHtml(activeView)}</span></p>
       <p id="node-announcement" class="screen-reader-only" aria-live="polite" aria-atomic="true"></p>
+      <section id="review-queue" class="panel review-queue is-hidden" aria-label="今日复习队列"></section>
       <section class="workspace" aria-label="物理知识学习区">
         <section class="panel graph-panel" aria-labelledby="route-heading">
+          <button type="button" class="directory-toggle" aria-expanded="false" aria-controls="reading-directory-panel">学习目录</button>
+          <div id="reading-directory-panel">
+          <nav class="reading-directory" aria-label="学习目录"></nav>
+          <details class="route-disclosure"><summary>学习路线</summary>
           <div class="panel-heading"><h2 id="route-heading">${escapeHtml(currentRoute.title)}</h2><span class="chapter-tag">推荐路线</span></div>
           <div class="route-toolbar">
             <label for="route-select">学习路线</label>
@@ -141,6 +140,9 @@ function mountStudyApp(root, data) {
             <span class="route-meta" id="route-meta"></span>
           </div>
           <p class="graph-copy" id="route-goal"></p>
+          </details>
+          <p class="book-marker">《物理学》第七版 · 下册<br>第 9—16 章</p>
+          </div>
           <div class="graph-region" id="graph-mount" aria-label="可交互知识图谱"></div>
           <p class="no-results is-hidden" id="no-results" role="status">没有找到匹配的知识点。<button type="button" class="clear-search">清空搜索与筛选</button></p>
           <p class="view-notice is-hidden" id="view-notice" role="status"></p>
@@ -159,6 +161,7 @@ function mountStudyApp(root, data) {
             <button type="button" class="route-action mark-mastered">标记掌握（自评）</button>
             <button type="button" class="route-action mark-review">待复习</button>
             <button type="button" class="route-action next-station">下一节 <span aria-hidden="true">→</span></button>
+            <button type="button" class="start-practice" data-action="start-practice">开始练习 <span aria-hidden="true">→</span></button>
           </div>
           <p class="progress-feedback" id="progress-feedback" aria-live="polite"></p>
         </aside>
@@ -171,9 +174,11 @@ function mountStudyApp(root, data) {
         <div id="study-view-content"></div>
       </section>
 
-      <section class="progress-tools" aria-label="本地学习进度管理">
+      <details class="progress-tools" id="learning-progress"><summary>学习进度</summary>
+        <section aria-label="本地学习进度管理">
         <p id="progress-summary"></p>
         <div class="progress-actions">
+          <button class="motion-button" type="button" aria-pressed="false">暂停动态</button>
           <button type="button" data-action="clear-progress">清空自评</button>
           <button type="button" data-action="export-progress">导出学习进度</button>
           <label class="import-mode">导入方式<select id="progress-import-mode"><option value="merge">合并，保留本机冲突项</option><option value="replace">替换全部</option></select></label>
@@ -181,10 +186,13 @@ function mountStudyApp(root, data) {
         </div>
         <p class="progress-message" id="progress-message" role="status" aria-live="polite">学习进度只保存在当前浏览器中。</p>
         <label class="share-fallback is-hidden" id="share-fallback-label">复制此链接<input id="share-fallback" readonly></label>
-      </section>
+        </section>
+      </details>
       <footer class="bottom-note"><span>学习图谱 · 以关系组织知识</span><span>本地进度不会上传，可随时导出备份</span></footer>
     </div>`;
 
+  root.querySelector('#reading-directory-panel').append(root.querySelector('.primary-nav'));
+  root.querySelector('#reading-directory-panel').append(root.querySelector('#learning-progress'));
   const graphRoot = root.querySelector('#graph-mount');
   const renderGraphForView = () => {
     graph?.destroy();
@@ -219,6 +227,29 @@ function mountStudyApp(root, data) {
   const studyViewPanel = root.querySelector('#study-view-panel');
   const studyViewContent = root.querySelector('#study-view-content');
   const chapterSelectLabel = root.querySelector('.chapter-select-label');
+  workspace.append(studyViewPanel);
+
+  function renderDirectory() {
+    const selectedChapterId = byId.get(selectedId)?.chapterId;
+    root.querySelector('.reading-directory').innerHTML = `<h2>学习目录</h2>${catalog.chapters.map((chapter) =>
+      `<details class="directory-chapter"${chapter.id === selectedChapterId ? ' open' : ''}><summary>第 ${chapter.number} 章 · ${escapeHtml(chapter.title)}</summary><ul>${catalog.nodes.filter((node) => node.chapterId === chapter.id).map((node) =>
+        `<li><button type="button" data-directory-node="${escapeHtml(node.id)}"${node.id === selectedId ? ' aria-current="page"' : ''}>${escapeHtml(node.title)}</button></li>`).join('')}</ul></details>`).join('')}`;
+  }
+
+  function closeDirectory({ restoreFocus = false } = {}) {
+    root.querySelector('.directory-toggle').setAttribute('aria-expanded', 'false');
+    root.querySelector('.graph-panel').classList.remove('directory-open');
+    if (restoreFocus) root.querySelector('.directory-toggle').focus();
+  }
+
+  root.querySelector('.directory-toggle').addEventListener('click', (event) => {
+    const open = event.currentTarget.getAttribute('aria-expanded') !== 'true';
+    event.currentTarget.setAttribute('aria-expanded', String(open));
+    root.querySelector('.graph-panel').classList.toggle('directory-open', open);
+  });
+  root.querySelector('.graph-panel').addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeDirectory({ restoreFocus: true });
+  });
 
   function viewKey() {
     return { '完整图谱': 'graph', '章节地图': 'chapter', '教材评估': 'guide' }[activeView] ?? 'study';
@@ -247,12 +278,105 @@ function mountStudyApp(root, data) {
 
   function persistenceNotice(action) {
     if (learningStorage.getLegacySyncState?.() === 'out-of-sync') {
+      revealProgress();
       return `${action}；旧版页面可能看不到最新自评，回退前请先导出学习进度备份。`;
     }
-    return progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory'
+    const temporary = progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory';
+    if (temporary) revealProgress();
+    return temporary
       ? `${action}；仅在本次打开期间保存，请导出备份。`
       : `${action}。`;
   }
+
+  function showLearningError(error) {
+    revealProgress();
+    if (!destroyed) progressMessage.textContent = `学习记录未能保存：${error.message} 请先导出备份，再刷新后重试或恢复备份。`;
+  }
+
+  function revealProgress() {
+    root.querySelector('#learning-progress').open = true;
+    if (typeof window !== 'undefined' && window.innerWidth <= 760) {
+      root.querySelector('.directory-toggle').setAttribute('aria-expanded', 'true');
+      root.querySelector('.graph-panel').classList.add('directory-open');
+    }
+  }
+
+  function syncLearningStores() {
+    learningStorage.refresh();
+    progress.getAll();
+    practice.refresh();
+  }
+
+  // Web Locks return a Promise; the unsupported-browser fallback is synchronous.
+  // Refresh both collections after grant, never before a queued mutation.
+  function mutateLearning(action, onSaved, onFailed) {
+    const failed = (error) => {
+      if (!destroyed) onFailed?.();
+      showLearningError(error);
+    };
+    try {
+      const result = learningStorage.runExclusive(() => {
+        if (destroyed) return;
+        syncLearningStores();
+        return action();
+      });
+      const complete = (value) => { if (!destroyed) onSaved?.(value); };
+      if (result && typeof result.then === 'function') result.then(complete).catch(failed);
+      else complete(result);
+    } catch (error) { failed(error); }
+  }
+
+  function updateReviewQueue() {
+    const due = currentDueQuestions(practice, questions, byId);
+    root.querySelector('[data-action="today-review"]').textContent = `今日复习（${due.length}）`;
+    root.querySelector('#review-queue').innerHTML = `<h2>今日复习</h2>${due.length ? '<ol>' + due.map(({ question, record, node }) =>
+      `<li data-review-question-id="${escapeHtml(question.id)}"><h3>${escapeHtml(node.title)}</h3><p>${escapeHtml(question.prompt)}</p><p>复习日期 <time datetime="${record.dueDate}">${record.dueDate}</time> · ${record.lastCorrect ? '本次正确' : '本次错误'}${record.passed && !record.lastCorrect ? ' · 曾通过' : ''}</p><button type="button" data-action="start-review" data-question-id="${escapeHtml(question.id)}">开始复习</button></li>`).join('') + '</ol>' : '<p>今天没有到期的练习。可以继续学习或主动练习。</p>'}`;
+  }
+
+  function refreshLearningView({ forceQuestionId } = {}) {
+    graph?.setFilters({ progress: progress.getAll() });
+    const status = progress.getAll()[selectedId] ?? 'new';
+    feedback.textContent = status === 'mastered' ? '已自评掌握；做题记录另行计算。' : status === 'review' ? '已加入待复习。' : '尚未自评。';
+    if (currentTab === 'practice') {
+      const panel = detailHost.querySelector('.practice-panel');
+      if (panel) {
+        const freshPanel = renderPracticePanel(selectedId);
+        for (const fresh of freshPanel.querySelectorAll('.practice-question')) {
+          const id = fresh.getAttribute('data-question-id');
+          const existing = panel.querySelector(`[data-question-id="${id}"]`);
+          const hasDraft = existing && [...existing.querySelectorAll('input')].some((input) => input.type === 'radio' ? input.checked : input.value !== '');
+          if (existing && hasDraft && id !== forceQuestionId) {
+            existing.querySelector('.practice-record').textContent = fresh.querySelector('.practice-record').textContent;
+            existing.querySelector('.practice-feedback').textContent = '';
+          } else existing?.replaceWith(fresh);
+        }
+      }
+    }
+    updateRouteMeta();
+    if (activeView === '章节地图') renderStudyView();
+  }
+
+  function synchronizeLearning() {
+    if (destroyed) return;
+    try { syncLearningStores(); refreshLearningView(); }
+    catch (error) { showLearningError(error); }
+  }
+
+  function scheduleDayRollover() {
+    if (typeof window === 'undefined' || !window.setTimeout) return;
+    window.clearTimeout?.(rolloverTimer);
+    rolloverTimer = window.setTimeout(() => {
+      synchronizeLearning();
+      scheduleDayRollover();
+    }, millisecondsUntilNextDay() + 50);
+  }
+
+  const onLearningStorage = (event) => {
+    if (event.storageArea && event.storageArea !== storage) return;
+    if (event.key === null || ['physics-atlas-learning-v2', 'physics-atlas-progress-v1', 'physics-atlas-practice-v2'].includes(event.key)) synchronizeLearning();
+  };
+  const onReturningFocus = () => { synchronizeLearning(); scheduleDayRollover(); };
+  const onVisibilityChange = () => { if (document.visibilityState === 'visible') onReturningFocus(); };
 
   function renderStudyView() {
     chapterSelectLabel.classList.toggle('is-hidden', activeView !== '章节地图');
@@ -294,15 +418,16 @@ function mountStudyApp(root, data) {
       const record = practice.getRecord(question);
       const status = ownerDocument.createElement('p');
       status.className = 'practice-record';
-      status.textContent = record?.passed
-        ? `已通过 · 作答 ${record.attempts} 次${record.dueDate ? ` · 下次复习 ${record.dueDate}` : ''}`
-        : record ? `尚未通过 · 作答 ${record.attempts} 次` : '尚未作答';
+      status.textContent = practiceRecordLabel(record);
       section.append(status);
 
       const feedback = ownerDocument.createElement('p');
       feedback.className = 'practice-feedback';
       feedback.setAttribute('role', 'status');
-      if (record?.lastFeedback) feedback.textContent = record.lastFeedback;
+      feedback.setAttribute('aria-live', 'polite');
+      // Keep the empty live region in the accessibility tree for the new attempt.
+      feedback.setAttribute('style', 'display: block');
+      if (record?.lastFeedback && !record.awaitingNewAttempt) feedback.textContent = record.lastFeedback;
 
       if (!record || record.awaitingNewAttempt) {
         const form = ownerDocument.createElement('form');
@@ -345,17 +470,27 @@ function mountStudyApp(root, data) {
         submit.className = 'practice-submit';
         submit.textContent = '提交答案';
         form.append(submit);
+        // A preserved form owns one local attempt even when another page has
+        // completed the saved attempt. Repeated events from that form stay one.
+        let submitted = false;
         form.addEventListener?.('submit', (event) => {
           event.preventDefault();
+          if (submitted) return;
+          submitted = true;
+          submit.disabled = true;
           const answer = question.kind === 'numeric'
             ? { value: form.querySelector('[name="value"]').value, unit: form.querySelector('[name="unit"]').value }
             : form.querySelector('[name="choice"]:checked')?.value;
-          const { result } = practice.submit(question, answer);
-          updateDetail(selectedId);
-          const currentQuestion = detailHost.querySelector(`[data-question-id="${question.id}"]`);
-          const currentFeedback = currentQuestion?.querySelector('.practice-feedback');
-          if (currentFeedback) currentFeedback.textContent = result.feedback;
-          if (practice.getPersistenceState() === 'memory') progressMessage.textContent = '练习记录仅在本次打开期间保存，请导出备份。';
+          mutateLearning(() => {
+            if (practice.getRecord(question)?.awaitingNewAttempt === false) practice.beginAttempt(question);
+            return practice.submit(question, answer);
+          }, ({ recorded }) => {
+            refreshLearningView({ forceQuestionId: question.id });
+            progressMessage.textContent = persistenceNotice(recorded ? '已记录本次练习' : '本次提交未新增记录，请点击“再试一次”后作答');
+          }, () => {
+            submitted = false;
+            submit.disabled = false;
+          });
         });
         section.append(form);
       } else {
@@ -364,8 +499,10 @@ function mountStudyApp(root, data) {
         retry.className = 'practice-retry';
         retry.textContent = '再试一次';
         retry.addEventListener?.('click', () => {
-          practice.beginAttempt(question);
-          updateDetail(selectedId);
+          mutateLearning(() => practice.beginAttempt(question), () => {
+            refreshLearningView({ forceQuestionId: question.id });
+            progressMessage.textContent = persistenceNotice('已开始新一轮作答，请独立作答后提交');
+          });
         });
         section.append(retry);
       }
@@ -435,12 +572,12 @@ function mountStudyApp(root, data) {
     routeGoal.textContent = activeView === '完整图谱'
       ? '先按章节定位，再用节点和连线追踪先修、推导与应用。'
       : currentRoute.goal;
-    detailStep.textContent = index < 0
-      ? '自由探索'
-      : `路线第 ${String(index + 1).padStart(2, '0')} / ${String(currentRoute.nodeIds.length).padStart(2, '0')} 站`;
+    const chapter = catalog.chapters.find((item) => item.id === byId.get(selectedId)?.chapterId);
+    detailStep.textContent = chapter ? `第 ${chapter.number} 章 / ${chapter.title}` : '自由探索';
     const routeQuestions = currentRoute.nodeIds.flatMap((id) => questionsByNode(id));
     const passed = routeQuestions.filter((question) => practice.getRecord(question)?.passed).length;
-    progressSummary.textContent = `当前路线「${currentRoute.title}」自评掌握 ${routeState.done} / ${routeState.total} 个节点；练习通过 ${passed} / ${routeQuestions.length} 题。`;
+    progressSummary.textContent = `当前路线「${currentRoute.title}」自评掌握 ${routeState.done} / ${routeState.total} 个节点；历史练习通过 ${passed} / ${routeQuestions.length} 题。`;
+    updateReviewQueue();
     const nextButton = root.querySelector('.next-station');
     if (nextButton) nextButton.disabled = !routeState.inRoute || routeState.complete;
   }
@@ -458,26 +595,48 @@ function mountStudyApp(root, data) {
     const prerequisites = prerequisiteIds.map((nodeId) => byId.get(nodeId)).filter(Boolean);
     const next = nextIds.map((nodeId) => byId.get(nodeId)).filter(Boolean);
     const detail = renderNodeDetail(node, { prerequisites, next }, catalog.sources);
+    const tabs = root.querySelector('.detail-tabs');
+    const tabButtons = [...root.querySelectorAll('[role="tab"][data-tab]')];
+    const summary = detail.querySelector('[data-detail-kind="summary"]');
+    summary?.after?.(tabs);
     const formulaElement = detail.querySelector?.('.detail-section .formula');
     if (formulaElement) renderFormula(formulaElement, { text: node.formula, latex: formulaLatexFor(node) });
+    if (currentTab === 'experiment' && node.simulationId === 'pendulum' && formulaElement) {
+      const explanation = (detailHost.ownerDocument ?? document).createElement('p');
+      explanation.className = 'experiment-formula-reading';
+      explanation.textContent = '摆长增大 4 倍，周期增大 2 倍。';
+      formulaElement.parentElement?.append(explanation);
+    }
     if (currentTab === 'experiment' && !node.simulationId) currentTab = 'understand';
     workspace.classList.toggle('has-experiment', currentTab === 'experiment');
     detail.setAttribute('data-tab', currentTab);
-    root.querySelectorAll('[role="tab"][data-tab]').forEach((button) => {
+    detail.setAttribute('role', 'tabpanel');
+    detail.setAttribute('aria-labelledby', `detail-tab-${currentTab}`);
+    tabButtons.forEach((button) => {
       const isExperiment = button.dataset.tab === 'experiment';
       button.classList.toggle('is-hidden', isExperiment && !node.simulationId);
       button.setAttribute('aria-selected', String(button.dataset.tab === currentTab));
+      button.setAttribute('tabindex', button.dataset.tab === currentTab ? '0' : '-1');
+      button.setAttribute('id', `detail-tab-${button.dataset.tab}`);
+      button.setAttribute('aria-controls', 'detail-content');
     });
     if (node.simulationId) {
       const ownerDocument = detailHost.ownerDocument ?? document;
       if (currentTab === 'experiment') {
         const predictionPanel = renderPredictionPanel(node.simulationId);
-        if (predictionPanel) detail.append(predictionPanel);
+        if (predictionPanel) {
+          const disclosure = ownerDocument.createElement('details');
+          disclosure.className = 'prediction-disclosure';
+          const label = ownerDocument.createElement('summary');
+          label.textContent = '先预测，再观察';
+          disclosure.append(label, predictionPanel);
+          detail.append(disclosure);
+        }
       }
       const launch = ownerDocument.createElement('button');
       launch.type = 'button';
       launch.className = 'simulation-launch-button';
-      launch.textContent = '打开演示';
+      launch.textContent = '重置演示';
       launch.setAttribute('data-action', 'open-simulation');
       launch.setAttribute('data-node-id', node.id);
       const simulationMount = ownerDocument.createElement('div');
@@ -488,12 +647,18 @@ function mountStudyApp(root, data) {
     }
     if (currentTab === 'practice') detail.append(renderPracticePanel(node.id));
     detailHost.replaceChildren(detail);
+    renderDirectory();
     const status = progress.getAll()[id] ?? 'new';
     feedback.textContent = status === 'mastered' ? '已自评掌握；做题记录另行计算。' : status === 'review' ? '已加入待复习。' : '尚未自评。';
     updateRouteMeta();
     if (currentTab === 'experiment' && node.simulationId && activeSimulationMount) {
       try { activeSimulationCleanup = mountSimulation(activeSimulationMount, node.simulationId); }
       catch (error) { activeSimulationMount.textContent = `演示无法加载：${error.message}`; }
+      const playback = activeSimulationMount.querySelector('.simulation-playback');
+      const reset = detail.querySelector('.simulation-launch-button');
+      if (playback && reset) playback.append(reset);
+      const prediction = detail.querySelector('.prediction-disclosure');
+      if (playback && prediction) playback.append(prediction);
     }
   }
 
@@ -519,7 +684,7 @@ function mountStudyApp(root, data) {
     graph?.setFilters({ ...resetGraphFacets(), searchIds: null, routeOnly: activeView === '速学路线' });
   }
 
-  function changeView(label, preserveSearch = false) {
+  function changeView(label, preserveSearch = false, sync = true) {
     activeView = label;
     workspace.classList.toggle('is-full-graph', label === '完整图谱');
     root.querySelector('#view-select').value = label;
@@ -528,7 +693,7 @@ function mountStudyApp(root, data) {
     const isKnownView = ['速学路线', '完整图谱', '章节地图', '教材评估'].includes(label);
     const isGraphView = label === '速学路线' || label === '完整图谱';
     viewNotice.classList.toggle('is-hidden', isKnownView);
-    workspace.classList.toggle('is-hidden', !isGraphView);
+    root.querySelector('.detail-panel').classList.toggle('is-hidden', !isGraphView);
     studyViewPanel.classList.toggle('is-hidden', isGraphView || !isKnownView);
     if (!isKnownView) viewNotice.textContent = '当前视图暂不可用。';
     if (isGraphView) {
@@ -543,7 +708,7 @@ function mountStudyApp(root, data) {
       noResults.classList.add('is-hidden');
       renderStudyView();
     }
-    syncLocation();
+    if (sync) syncLocation();
   }
 
   function selectRoute(routeId) {
@@ -573,6 +738,20 @@ function mountStudyApp(root, data) {
     focusDetail();
   }));
 
+  root.querySelector('.detail-tabs').addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const tabs = [...root.querySelectorAll('[role="tab"][data-tab]')].filter((tab) => !tab.classList.contains('is-hidden'));
+    const index = tabs.indexOf(event.target);
+    if (index < 0) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    currentTab = tabs[nextIndex].dataset.tab;
+    updateDetail(selectedId);
+    syncLocation();
+    tabs[nextIndex].focus();
+  });
+
   root.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => changeView(button.dataset.view)));
   root.querySelector('#view-select').addEventListener('change', (event) => changeView(event.target.value));
 
@@ -596,6 +775,16 @@ function mountStudyApp(root, data) {
   });
 
   root.addEventListener('click', (event) => {
+    const directoryNode = event.target.closest?.('[data-directory-node]');
+    if (directoryNode) {
+      const id = directoryNode.getAttribute('data-directory-node');
+      closeDirectory();
+      // The view and selected node are one navigation, so Back returns to the
+      // source surface instead of an intermediate reading page.
+      if (activeView === '章节地图' || activeView === '教材评估') changeView('速学路线', false, false);
+      selectNode(id, { focus: true });
+      return;
+    }
     const relatedNode = event.target.closest?.('.related-node[data-node-id]');
     if (relatedNode) {
       const id = relatedNode.getAttribute('data-node-id');
@@ -622,13 +811,39 @@ function mountStudyApp(root, data) {
       if (activeView === '章节地图') renderStudyView();
     }
     const action = event.target.closest?.('[data-action]');
-    if (action?.dataset.action === 'open-simulation') {
+    if (action?.dataset.action === 'start-practice') {
+      currentTab = 'practice';
+      updateDetail(selectedId);
+      syncLocation();
+      focusDetail();
+    } else if (action?.dataset.action === 'today-review') {
+      const open = action.getAttribute('aria-expanded') !== 'true';
+      updateReviewQueue();
+      action.setAttribute('aria-expanded', String(open));
+      root.querySelector('#review-queue').classList.toggle('is-hidden', !open);
+      if (open) root.querySelector('#review-queue').scrollIntoView?.({ block: 'start', behavior: 'instant' });
+    } else if (action?.dataset.action === 'start-review') {
+      const question = questions.find((item) => item.id === action.getAttribute('data-question-id'));
+      if (question && byId.has(question.nodeId)) mutateLearning(() => practice.beginAttempt(question), () => {
+        currentTab = 'practice';
+        if (activeView !== '速学路线' && activeView !== '完整图谱') changeView('速学路线');
+        selectNode(question.nodeId);
+        const heading = detailHost.querySelector(`[data-question-id="${question.id}"] h3`);
+        heading?.setAttribute('tabindex', '-1');
+        heading?.focus?.({ preventScroll: true });
+        heading?.scrollIntoView?.({ block: 'center', behavior: 'instant' });
+        progressMessage.textContent = persistenceNotice('已开始复习，请独立作答后提交');
+      });
+    } else if (action?.dataset.action === 'open-simulation') {
       const node = byId.get(action.getAttribute('data-node-id'));
       if (node?.simulationId && node.id === selectedId && activeSimulationMount) {
+        const prediction = activeSimulationMount.querySelector('.prediction-disclosure');
         activeSimulationCleanup?.();
         try {
           activeSimulationCleanup = mountSimulation(activeSimulationMount, node.simulationId);
-          action.textContent = '重新打开演示';
+          const playback = activeSimulationMount.querySelector('.simulation-playback');
+          playback?.append(action);
+          if (playback && prediction) playback.append(prediction);
         } catch (error) {
           activeSimulationMount.textContent = `演示无法加载：${error.message}`;
         }
@@ -639,6 +854,7 @@ function mountStudyApp(root, data) {
       Promise.resolve(writeText ? writeText(shareUrl) : Promise.reject(new Error('clipboard unavailable'))).then(() => {
         progressMessage.textContent = '当前位置链接已复制，可以发给同学。';
       }).catch(() => {
+        revealProgress();
         const fallback = root.querySelector('#share-fallback');
         fallback.value = shareUrl;
         root.querySelector('#share-fallback-label').classList.remove('is-hidden');
@@ -647,12 +863,10 @@ function mountStudyApp(root, data) {
       });
     } else if (action?.dataset.action === 'clear-progress') {
       if (typeof window === 'undefined' || !window.confirm || window.confirm('清空此浏览器中的自评状态？练习作答记录仍会保留。')) {
-        progress.clear();
-        feedback.textContent = '本地自评已清空，练习记录仍保留。';
-        graph?.setFilters({ progress: progress.getAll() });
-        updateDetail(selectedId);
-        if (activeView === '章节地图') renderStudyView();
-        progressMessage.textContent = persistenceNotice('本地自评已清空，练习记录仍保留');
+        mutateLearning(() => progress.clear(), () => {
+          refreshLearningView();
+          progressMessage.textContent = persistenceNotice('本地自评已清空，练习记录仍保留');
+        });
       }
     } else if (action?.dataset.action === 'export-progress') {
       const blob = new Blob([exportBackupJson(progress, practice)], { type: 'application/json' });
@@ -666,19 +880,19 @@ function mountStudyApp(root, data) {
     }
     if (event.target.closest?.('.clear-search')) clearSearch();
     if (event.target.closest?.('.mark-mastered')) {
-      progress.setStatus(selectedId, 'mastered');
-      graph?.setFilters({ progress: progress.getAll() });
-      updateDetail(selectedId);
-      if (activeView === '章节地图') renderStudyView();
-      const routeState = getRouteState(currentRoute, selectedId, progress);
-      progressMessage.textContent = persistenceNotice(routeState.complete ? '整条路线已自评掌握' : '已记录自评掌握，继续学习请点“下一节”');
+      const nodeId = selectedId;
+      mutateLearning(() => progress.setStatus(nodeId, 'mastered'), () => {
+        refreshLearningView();
+        const routeState = getRouteState(currentRoute, selectedId, progress);
+        progressMessage.textContent = persistenceNotice(routeState.complete ? '整条路线已自评掌握' : '已记录自评掌握，继续学习请点“下一节”');
+      });
     }
     if (event.target.closest?.('.mark-review')) {
-      progress.setStatus(selectedId, 'review');
-      graph?.setFilters({ progress: progress.getAll() });
-      updateDetail(selectedId);
-      if (activeView === '章节地图') renderStudyView();
-      progressMessage.textContent = persistenceNotice('已加入待复习，可在图谱进度筛选中查看');
+      const nodeId = selectedId;
+      mutateLearning(() => progress.setStatus(nodeId, 'review'), () => {
+        refreshLearningView();
+        progressMessage.textContent = persistenceNotice('已加入待复习，可在图谱进度筛选中查看');
+      });
     }
     if (event.target.closest?.('.next-station')) {
       const state = getRouteState(currentRoute, selectedId, progress);
@@ -698,33 +912,37 @@ function mountStudyApp(root, data) {
       const preview = previewBackup(serialized, { progress, practice, knownNodes, knownQuestions });
       const mode = root.querySelector('#progress-import-mode').value;
       const verb = mode === 'replace' ? '替换当前全部记录' : '合并并保留本机已有状态';
-      const questionSummary = preview.practice ? `、${preview.practice.accepted} 条练习记录` : '；旧版文件不含练习记录，现有练习不受影响';
-      const message = `文件中 ${preview.progress.imported} 条自评记录${questionSummary}，新增 ${preview.progress.added} 条、冲突 ${preview.progress.conflicts} 条。将${verb}，是否继续？`;
+      const questionSummary = preview.practice ? `；练习 ${preview.practice.imported} 条，新增 ${preview.practice.added} 条、冲突 ${preview.practice.conflicts} 条` : '；旧版文件不含练习记录，现有练习不受影响';
+      const message = `文件中自评 ${preview.progress.imported} 条，新增 ${preview.progress.added} 条、冲突 ${preview.progress.conflicts} 条${questionSummary}。将${verb}，是否继续？`;
       if (typeof window !== 'undefined' && window.confirm && !window.confirm(message)) {
         progressMessage.textContent = '已取消导入，原进度保持不变。';
         return;
       }
-      const oldProgress = progress.exportJson();
-      const oldPractice = { schemaVersion: 2, records: practice.getAll() };
-      const progressPayload = preview.version === 1 ? preview.payload : preview.payload.selfAssessment;
-      if (learningStorage.storage) learningStorage.beginTransaction();
-      try {
-        progress.importJson(JSON.stringify(progressPayload), knownNodes, { mode });
-        if (preview.version === 2) practice.importSnapshot(preview.payload.practice, { mode, knownQuestionIds: knownQuestions });
-        if (learningStorage.storage) learningStorage.commitTransaction();
-      } catch (error) {
-        learningStorage.rollbackTransaction?.();
-        progress = createProgressStore(null);
-        progress.importJson(oldProgress, knownNodes, { mode: 'replace' });
-        practice = createPracticeStore(null);
-        practice.importSnapshot(oldPractice, { mode: 'replace', knownQuestionIds: knownQuestions });
-        throw error;
-      }
-      graph?.setFilters({ progress: progress.getAll() });
-      updateDetail(selectedId);
-      if (activeView === '章节地图') renderStudyView();
-      progressMessage.textContent = persistenceNotice(`自评${preview.version === 1 ? '' : '与练习'}记录已验证并${mode === 'replace' ? '替换' : '合并'}`);
+      mutateLearning(() => {
+        // Revalidate against the snapshot obtained under the granted lock.
+        const currentPreview = previewBackup(serialized, { progress, practice, knownNodes, knownQuestions });
+        const oldProgress = progress.exportJson();
+        const oldPractice = { schemaVersion: 2, records: practice.getAll() };
+        const progressPayload = currentPreview.version === 1 ? currentPreview.payload : currentPreview.payload.selfAssessment;
+        if (learningStorage.storage) learningStorage.beginTransaction();
+        try {
+          progress.importJson(JSON.stringify(progressPayload), knownNodes, { mode });
+          if (currentPreview.version === 2) practice.importSnapshot(currentPreview.payload.practice, { mode, knownQuestionIds: knownQuestions });
+          if (learningStorage.storage) learningStorage.commitTransaction();
+        } catch (error) {
+          learningStorage.rollbackTransaction?.();
+          progress = createProgressStore(null);
+          progress.importJson(oldProgress, knownNodes, { mode: 'replace' });
+          practice = createPracticeStore(null);
+          practice.importSnapshot(oldPractice, { mode: 'replace', knownQuestionIds: knownQuestions });
+          throw error;
+        }
+      }, () => {
+        refreshLearningView();
+        progressMessage.textContent = persistenceNotice(`自评${preview.version === 1 ? '' : '与练习'}记录已验证并${mode === 'replace' ? '替换' : '合并'}`);
+      });
     } catch (error) {
+      revealProgress();
       progressMessage.textContent = `未导入：${error.message}`;
     } finally {
       event.target.value = '';
@@ -759,6 +977,10 @@ function mountStudyApp(root, data) {
   if (typeof window !== 'undefined') {
     window.addEventListener?.('popstate', restoreLocation);
     window.addEventListener?.('hashchange', restoreLocation);
+    window.addEventListener?.('storage', onLearningStorage);
+    window.addEventListener?.('focus', onReturningFocus);
+    document.addEventListener?.('visibilitychange', onVisibilityChange);
+    scheduleDayRollover();
   }
 
   if (activeView === '章节地图' || activeView === '教材评估') changeView(activeView, true);
@@ -767,11 +989,17 @@ function mountStudyApp(root, data) {
   if (learningStorage.state === 'damaged') progressMessage.textContent = '本地学习记录无法读取；原始存储未覆盖。此次使用仅保存在内存，请导出备份。';
   else if (learningStorage.getLegacySyncState?.() === 'out-of-sync') progressMessage.textContent = '旧版进度镜像未同步；若要回退页面，请先导出学习进度备份。';
   else if (progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory') progressMessage.textContent = '进度仅在本次打开期间保存，请导出备份。';
+  if (learningStorage.state === 'damaged' || learningStorage.getLegacySyncState?.() === 'out-of-sync' || progress.getPersistenceState() === 'memory' || practice.getPersistenceState() === 'memory') revealProgress();
   return { progress, selectNode, destroy() {
+    destroyed = true;
     activeSimulationCleanup?.(); removeMotionListener?.(); graph?.destroy();
     if (typeof window !== 'undefined') {
       window.removeEventListener?.('popstate', restoreLocation);
       window.removeEventListener?.('hashchange', restoreLocation);
+      window.removeEventListener?.('storage', onLearningStorage);
+      window.removeEventListener?.('focus', onReturningFocus);
+      document.removeEventListener?.('visibilitychange', onVisibilityChange);
+      window.clearTimeout?.(rolloverTimer);
     }
     root.innerHTML = '';
   } };

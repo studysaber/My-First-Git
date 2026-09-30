@@ -48,6 +48,7 @@ test('Maxwell hotter nitrogen peak moves right and lowers on one axis', async ({
   await host.locator('[data-param="temperature"]').evaluate((element) => { element.value = '900'; element.dispatchEvent(new Event('input', { bubbles: true })); });
   const baseline = await paths.nth(1).getAttribute('d');
   const hotter = await paths.nth(2).getAttribute('d');
+  expect(await paths.nth(1).getAttribute('stroke-dasharray')).not.toBe(await paths.nth(2).getAttribute('stroke-dasharray'));
   expect(baseline).toBe(reference);
   const extremum = (path) => [...path.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((match) => ({ x: Number(match[1]), y: Number(match[2]) })).reduce((best, point) => point.y < best.y ? point : best);
   expect(extremum(hotter).x).toBeGreaterThan(extremum(baseline).x);

@@ -9,6 +9,7 @@ test('v2 export and import preserve self-rating and answered-question evidence',
   await question.getByRole('button', { name: '提交答案' }).click();
   await page.getByRole('button', { name: '标记掌握（自评）' }).click();
   const downloadPromise = page.waitForEvent('download');
+  await page.locator('#learning-progress > summary').click();
   await page.getByRole('button', { name: '导出学习进度' }).click();
   const download = await downloadPromise;
   const bundle = JSON.parse(await readFile(await download.path(), 'utf8'));
@@ -46,6 +47,7 @@ test('a rollback to the old site can edit self-rating without losing later v2 pr
   await question.getByLabel('速率最大，加速度为零').check();
   await question.getByRole('button', { name: '提交答案' }).click();
   await page.getByRole('button', { name: '标记掌握（自评）' }).click();
+  await expect(page.locator('#progress-feedback')).toContainText('已自评掌握');
   const oldSiteRecord = await page.evaluate(() => JSON.parse(localStorage.getItem('physics-atlas-progress-v1')));
   expect(oldSiteRecord.progress['c9-shm']).toBe('mastered');
   await page.evaluate(() => localStorage.setItem('physics-atlas-progress-v1', '{"version":1,"progress":{"c9-shm":"review"}}'));

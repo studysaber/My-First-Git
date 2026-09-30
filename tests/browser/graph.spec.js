@@ -14,9 +14,9 @@ async function dragAndMeasure(page, view, zoomClicks) {
   expect(Math.abs((after.x - before.x) - 40)).toBeLessThanOrEqual(2);
 }
 
-test('40 px graph drag moves nodes 40 px in route and full views at two zoom levels', async ({ page }) => {
+test('40 px graph drag moves nodes 40 px in the expanded graph at two zoom levels', async ({ page }) => {
   await page.goto('./');
-  for (const view of ['速学路线', '完整图谱']) {
+  for (const view of ['完整图谱']) {
     for (const zoomClicks of [0, 3]) {
       await page.reload();
       await dragAndMeasure(page, view, zoomClicks);
@@ -37,6 +37,7 @@ test('graph labels select nodes, keyboard focus survives selection, and empty fi
   await page.keyboard.press('Enter');
   await expect(page.locator(`.graph-node[data-node-id="${id}"]`)).toHaveClass(/is-selected/);
   await expect(page.locator('.detail-content h2:focus')).toHaveCount(1);
+  await page.getByText('高级筛选', { exact: true }).click();
   await page.getByLabel('按知识类型筛选').selectOption('instrument');
   await page.getByLabel('按学习进度筛选').selectOption('mastered');
   await expect(page.getByRole('button', { name: '清除筛选' })).toBeVisible();
@@ -59,7 +60,7 @@ test('overview limits visible labels and selected label remains screen readable'
 
 test('mobile graph nodes retain a 44 px touch target', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('./');
+  await page.goto('./#view=graph&node=c9-shm');
   const hit = page.locator('.graph-node.is-selected .graph-node-hit');
   const box = await hit.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(44);
@@ -69,15 +70,16 @@ test('mobile graph nodes retain a 44 px touch target', async ({ page }) => {
 test('guided route labels form a readable non-overlapping sequence on a narrow screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
-  const labels = page.locator('.route-only-graph .graph-node-title');
+  await page.getByRole('button', { name: '学习目录', exact: true }).click();
+  const labels = page.locator('.directory-chapter[open] li button');
   const boxes = await labels.evaluateAll((elements) => elements.map((element) => {
     const box = element.getBoundingClientRect();
     return { top: box.top, bottom: box.bottom, height: box.height };
   }));
   expect(boxes.length).toBeGreaterThan(2);
-  expect(boxes.every((box) => box.height >= 12)).toBe(true);
+  expect(boxes.every((box) => box.height >= 44)).toBe(true);
   for (let index = 1; index < boxes.length; index += 1) {
-    expect(boxes[index].top).toBeGreaterThan(boxes[index - 1].bottom + 8);
+    expect(boxes[index].top).toBeGreaterThanOrEqual(boxes[index - 1].bottom);
   }
 });
 
