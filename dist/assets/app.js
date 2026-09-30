@@ -271,7 +271,11 @@ function mountStudyApp(root, data) {
 
   // Web Locks return a Promise; the unsupported-browser fallback is synchronous.
   // Refresh both collections after grant, never before a queued mutation.
-  function mutateLearning(action, onSaved) {
+  function mutateLearning(action, onSaved, onFailed) {
+    const failed = (error) => {
+      if (!destroyed) onFailed?.();
+      showLearningError(error);
+    };
     try {
       const result = learningStorage.runExclusive(() => {
         if (destroyed) return;
@@ -279,9 +283,9 @@ function mountStudyApp(root, data) {
         return action();
       });
       const complete = (value) => { if (!destroyed) onSaved?.(value); };
-      if (result && typeof result.then === 'function') result.then(complete).catch(showLearningError);
+      if (result && typeof result.then === 'function') result.then(complete).catch(failed);
       else complete(result);
-    } catch (error) { showLearningError(error); }
+    } catch (error) { failed(error); }
   }
 
   function updateReviewQueue() {
@@ -428,14 +432,26 @@ function mountStudyApp(root, data) {
         submit.className = 'practice-submit';
         submit.textContent = '提交答案';
         form.append(submit);
+        // A preserved form owns one local attempt even when another page has
+        // completed the saved attempt. Repeated events from that form stay one.
+        let submitted = false;
         form.addEventListener?.('submit', (event) => {
           event.preventDefault();
+          if (submitted) return;
+          submitted = true;
+          submit.disabled = true;
           const answer = question.kind === 'numeric'
             ? { value: form.querySelector('[name="value"]').value, unit: form.querySelector('[name="unit"]').value }
             : form.querySelector('[name="choice"]:checked')?.value;
-          mutateLearning(() => practice.submit(question, answer), () => {
+          mutateLearning(() => {
+            if (practice.getRecord(question)?.awaitingNewAttempt === false) practice.beginAttempt(question);
+            return practice.submit(question, answer);
+          }, ({ recorded }) => {
             refreshLearningView({ forceQuestionId: question.id });
-            progressMessage.textContent = persistenceNotice('已记录本次练习');
+            progressMessage.textContent = persistenceNotice(recorded ? '已记录本次练习' : '本次提交未新增记录，请点击“再试一次”后作答');
+          }, () => {
+            submitted = false;
+            submit.disabled = false;
           });
         });
         section.append(form);

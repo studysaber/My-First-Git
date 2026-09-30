@@ -56,3 +56,40 @@ test('mutations read current records only after a held browser lock is granted',
   expect(Object.keys(JSON.parse(saved.practiceRaw).records)).toHaveLength(2);
   expect(JSON.parse(saved.progressRaw).progress['c9-shm']).toBe('review');
 });
+
+test('a preserved same-question draft is graded locally after a remote pass without losing historical evidence', async ({ page, context }) => {
+  await page.goto('./#view=study&node=c9-shm&tab=practice');
+  const other = await context.newPage();
+  await other.goto('./#view=study&node=c9-shm&tab=practice');
+  const local = page.locator('[data-question-id="c9-shm-concept"]');
+  const remote = other.locator('[data-question-id="c9-shm-concept"]');
+  await local.getByLabel('两者都最大').check();
+  await remote.getByLabel('速率最大，加速度为零').check();
+  await remote.getByRole('button', { name: '提交答案' }).click();
+  await expect(remote.getByRole('status')).toContainText('回答正确');
+  await expect(local.locator('.practice-record')).toContainText('已通过');
+  await expect(local.getByLabel('两者都最大')).toBeChecked();
+  await expect(local.getByRole('status')).toBeEmpty();
+  await local.getByRole('button', { name: '提交答案' }).click();
+  await expect(local.getByRole('status')).toContainText('选项不正确');
+  await expect(local.locator('.practice-record')).toContainText('曾通过 · 本次错误 · 待复习');
+  await expect(local.locator('.practice-record')).toContainText('作答 2 次');
+  const saved = await page.evaluate(() => JSON.parse(JSON.parse(localStorage.getItem('physics-atlas-learning-v2')).practiceRaw).records['c9-shm-concept@1']);
+  expect(saved.lastCorrect).toBe(false);
+  expect(saved.passed).toBe(true);
+  expect(saved.attempts).toBe(2);
+});
+
+test('repeated submit events from one local form still record a single attempt', async ({ page }) => {
+  await page.goto('./#view=study&node=c9-shm&tab=practice');
+  const question = page.locator('[data-question-id="c9-shm-concept"]');
+  await question.getByLabel('速率最大，加速度为零').check();
+  await question.locator('form').evaluate((form) => {
+    form.requestSubmit();
+    form.requestSubmit();
+  });
+  await expect(question.getByRole('status')).toContainText('回答正确');
+  const saved = await page.evaluate(() => JSON.parse(JSON.parse(localStorage.getItem('physics-atlas-learning-v2')).practiceRaw).records['c9-shm-concept@1']);
+  expect(saved.attempts).toBe(1);
+  expect(saved.lastCorrect).toBe(true);
+});
