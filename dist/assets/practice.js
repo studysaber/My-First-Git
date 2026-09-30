@@ -80,28 +80,45 @@ function inspectSnapshot(snapshot, knownQuestionIds) {
 export function createPracticeStore(storage) {
   let memory = {};
   let persistence = storage && typeof storage.getItem === 'function' && typeof storage.setItem === 'function' ? 'persistent' : 'memory';
-  if (persistence === 'persistent') {
+  const temporary = new Set();
+  function refresh() {
+    if (!storage || typeof storage.getItem !== 'function') return;
     try {
       const raw = storage.getItem(STORAGE_KEY);
+      let records = {};
       if (raw !== null) {
         const parsed = JSON.parse(raw);
         if (parsed?.schemaVersion !== 2 || !parsed.records || typeof parsed.records !== 'object' || Array.isArray(parsed.records)) throw new TypeError('旧版或损坏的练习记录');
-        memory = parsed.records;
+        const preview = inspectSnapshot(parsed, Object.values(parsed.records).map((record) => record?.questionId));
+        if (!preview.valid) throw new TypeError(preview.errors.join('；'));
+        records = parsed.records;
       }
+      // Temporary records stay exportable even if a later refresh can read
+      // persistent data again. They must never silently overwrite disk data.
+      const next = { ...records };
+      for (const key of temporary) {
+        if (Object.hasOwn(memory, key)) next[key] = memory[key];
+        else delete next[key];
+      }
+      memory = next;
     } catch {
       persistence = 'memory';
+      for (const key of Object.keys(memory)) temporary.add(key);
     }
   }
+  refresh();
   const save = () => {
     if (persistence !== 'persistent') return;
     try { storage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 2, records: memory })); }
     catch { persistence = 'memory'; }
   };
   return {
+    refresh,
     getRecord(question) {
+      refresh();
       return memory[recordKey(question)] ? structuredClone(memory[recordKey(question)]) : null;
     },
-    getAll() { return structuredClone(memory); },
+    getAll() { refresh(); return structuredClone(memory); },
     getPersistenceState() { return persistence; },
     previewImport(snapshot, knownQuestionIds) {
       return inspectSnapshot(snapshot, knownQuestionIds);
@@ -110,6 +127,7 @@ export function createPracticeStore(storage) {
       if (mode !== 'merge' && mode !== 'replace') throw new TypeError('导入模式必须为 merge 或 replace。');
       const preview = inspectSnapshot(snapshot, knownQuestionIds);
       if (!preview.valid) throw new TypeError(preview.errors.join('；'));
+      refresh();
       const next = mode === 'replace' ? { ...snapshot.records } : { ...memory };
       if (mode === 'merge') {
         for (const [key, incoming] of Object.entries(snapshot.records)) {
@@ -120,14 +138,21 @@ export function createPracticeStore(storage) {
       }
       const owned = structuredClone(next);
       if (persistence === 'persistent') storage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 2, records: owned }));
+      else for (const key of new Set([...Object.keys(memory), ...Object.keys(owned)])) temporary.add(key);
       memory = owned;
       return preview;
     },
     beginAttempt(question) {
+      refresh();
       const key = recordKey(question);
-      if (memory[key]) { memory[key] = { ...memory[key], awaitingNewAttempt: true }; save(); }
+      if (memory[key]) {
+        memory[key] = { ...memory[key], awaitingNewAttempt: true };
+        save();
+        if (persistence === 'memory') temporary.add(key);
+      }
     },
     submit(question, answer, now = new Date()) {
+      refresh();
       const key = recordKey(question);
       const date = now instanceof Date ? now : new Date(now);
       const today = localDate(date);
@@ -152,9 +177,11 @@ export function createPracticeStore(storage) {
       };
       memory = { ...memory, [key]: record };
       save();
+      if (persistence === 'memory') temporary.add(key);
       return { result, record: structuredClone(record), recorded: true };
     },
     getDue(now = new Date()) {
+      refresh();
       const today = localDate(now);
       return Object.values(memory).filter((record) => record.dueDate <= today).map((record) => structuredClone(record));
     },

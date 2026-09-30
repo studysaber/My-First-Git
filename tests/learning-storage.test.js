@@ -85,3 +85,57 @@ test('damaged canonical record is never overwritten by a new session', () => {
   assert.equal(adapter.state, 'damaged');
   assert.equal(native.getItem(learningStorageKey), '{broken');
 });
+
+test('refresh reloads current data but never changes a transaction’s starting snapshot', () => {
+  const native = new StorageStub();
+  const a = createLearningStorage(native), b = createLearningStorage(native);
+  a.beginTransaction();
+  a.storage.setItem('physics-atlas-practice-v2', '{"schemaVersion":2,"records":{"q":1}}');
+  b.storage.setItem('physics-atlas-practice-v2', '{"schemaVersion":2,"records":{"q":2}}');
+  a.refresh();
+  assert.equal(JSON.parse(a.storage.getItem('physics-atlas-practice-v2')).records.q, 1);
+  const before = native.getItem(learningStorageKey);
+  assert.throws(() => a.commitTransaction(), /同时|冲突|刷新/);
+  assert.equal(native.getItem(learningStorageKey), before);
+  a.refresh();
+  assert.equal(JSON.parse(a.storage.getItem('physics-atlas-practice-v2')).records.q, 2);
+});
+
+test('runExclusive preserves the synchronous fallback result when Web Locks are unavailable', (t) => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  t.after(() => {
+    if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
+    else delete globalThis.navigator;
+  });
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+  const adapter = createLearningStorage(new StorageStub());
+  let called = false;
+  const result = adapter.runExclusive(() => { called = true; return 42; });
+  assert.equal(called, true);
+  assert.equal(result, 42);
+});
+
+test('runExclusive runs mutations only when the named Web Lock is granted', async (t) => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  t.after(() => {
+    if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
+    else delete globalThis.navigator;
+  });
+  let grant;
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {
+    locks: { request(name, action) {
+      assert.equal(name, learningStorageKey);
+      return new Promise((resolve) => { grant = () => resolve(action()); });
+    } },
+  } });
+  const native = new StorageStub();
+  const adapter = createLearningStorage(native);
+  const pending = adapter.runExclusive(() => {
+    adapter.storage.setItem('physics-atlas-practice-v2', 'answer');
+    return 'saved';
+  });
+  assert.equal(native.getItem(learningStorageKey), null);
+  grant();
+  assert.equal(await pending, 'saved');
+  assert.equal(JSON.parse(native.getItem(learningStorageKey)).practiceRaw, 'answer');
+});

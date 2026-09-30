@@ -165,3 +165,53 @@ test('practice import merges by latest answer, replaces when requested and keeps
   assert.deepEqual(target.getRecord(q), older);
   assert.deepEqual(createPracticeStore(storage).getRecord(q), older);
 });
+
+test('practice import reads current records instead of replacing an unseen newer answer', () => {
+  const q = questions.find((item) => item.id === 'c9-shm-concept');
+  const map = new Map();
+  const storage = { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
+  const stale = createPracticeStore(storage), other = createPracticeStore(storage);
+  other.submit(q, q.answer, new Date('2026-09-29T12:00:00+08:00'));
+  const recent = other.getRecord(q);
+  stale.importSnapshot({ schemaVersion: 2, records: { [`${q.id}@${q.version}`]: { ...recent, lastAnsweredAt: '2026-09-28T04:00:00.000Z' } } });
+  assert.deepEqual(createPracticeStore(storage).getRecord(q), recent);
+});
+
+test('malformed fresh practice data is preserved and last good records remain exportable', () => {
+  const q = questions.find((item) => item.id === 'c9-shm-concept');
+  const map = new Map();
+  const storage = { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
+  const store = createPracticeStore(storage);
+  store.submit(q, q.answer);
+  map.set('physics-atlas-practice-v2', '{broken');
+  store.refresh();
+  assert.equal(store.getRecord(q).passed, true);
+  assert.equal(store.getPersistenceState(), 'memory');
+  store.beginAttempt(q);
+  assert.equal(map.get('physics-atlas-practice-v2'), '{broken');
+  assert.equal(store.getAll()[`${q.id}@${q.version}`].awaitingNewAttempt, true);
+});
+
+test('malformed individual saved records cannot break review or overwrite the damaged snapshot', () => {
+  const raw = '{"schemaVersion":2,"records":{"bad@1":null}}';
+  const map = new Map([['physics-atlas-practice-v2', raw]]);
+  const storage = { getItem: (key) => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
+  const store = createPracticeStore(storage);
+  assert.deepEqual(store.getDue(), []);
+  assert.equal(store.getPersistenceState(), 'memory');
+  const q = questions.find((item) => item.id === 'c9-shm-concept');
+  store.submit(q, q.answer);
+  assert.equal(store.getRecord(q).passed, true);
+  assert.equal(map.get('physics-atlas-practice-v2'), raw);
+});
+
+test('replacing temporary practice data removes old temporary entries on later refresh', () => {
+  const q = questions.find((item) => item.id === 'c9-shm-concept');
+  const map = new Map();
+  const storage = { getItem: (key) => map.get(key) ?? null, setItem() { throw Error('quota'); } };
+  const store = createPracticeStore(storage);
+  store.submit(q, q.answer);
+  store.importSnapshot({ schemaVersion: 2, records: {} }, { mode: 'replace' });
+  assert.deepEqual(store.getAll(), {});
+  assert.deepEqual(store.getDue(), []);
+});
