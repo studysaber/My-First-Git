@@ -58,6 +58,33 @@ test('stale field snapshots merge independent entries but reject changed same en
   assert.equal(native.getItem(learningStorageKey), before);
 });
 
+test('reading practice cannot advance the baseline of an outstanding progress snapshot', () => {
+  const native = new SharedStorage();
+  const seed = createLearningStorage(native);
+  seed.storage.setItem(progressKey, '{"version":1,"progress":{"a":"new"}}');
+  const a = createLearningStorage(native), b = createLearningStorage(native);
+  const local = JSON.parse(a.storage.getItem(progressKey));
+  b.storage.setItem(progressKey, '{"version":1,"progress":{"a":"mastered","b":"review"}}');
+  a.storage.getItem(practiceKey);
+  local.progress.c = 'review';
+  a.storage.setItem(progressKey, JSON.stringify(local));
+  assert.deepEqual(JSON.parse(createLearningStorage(native).storage.getItem(progressKey)).progress,
+    { a: 'mastered', b: 'review', c: 'review' });
+});
+
+test('reading another field cannot hide a same-entry conflict in a pending snapshot', () => {
+  const native = new SharedStorage();
+  createLearningStorage(native).storage.setItem(progressKey, '{"version":1,"progress":{"a":"new"}}');
+  const a = createLearningStorage(native), b = createLearningStorage(native);
+  const local = JSON.parse(a.storage.getItem(progressKey));
+  b.storage.setItem(progressKey, '{"version":1,"progress":{"a":"mastered","b":"review"}}');
+  a.storage.getItem(practiceKey);
+  local.progress.a = 'review';
+  const before = native.getItem(learningStorageKey);
+  assert.throws(() => a.storage.setItem(progressKey, JSON.stringify(local)), /同时|冲突|刷新/);
+  assert.equal(native.getItem(learningStorageKey), before);
+});
+
 test('transaction commit validates its starting entries and does not partially commit on conflict', () => {
   const native = new SharedStorage();
   const a = createLearningStorage(native), b = createLearningStorage(native);

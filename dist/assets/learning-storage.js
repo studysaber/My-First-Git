@@ -123,6 +123,9 @@ export function createLearningStorage(nativeStorage) {
 
   let draft = null;
   let transactionBaseline = null;
+  // Refreshing the envelope must not rebase a snapshot the caller already read
+  // from another field. Each field advances only on its own read or commit.
+  const observed = new Map(current);
   function readLatest() {
     const observedLegacy = nativeStorage.getItem(PROGRESS_KEY);
     const raw = nativeStorage.getItem(KEY);
@@ -149,7 +152,8 @@ export function createLearningStorage(nativeStorage) {
     legacyProgressRaw = latest.legacy;
     legacySyncState = current.get(PROGRESS_KEY) === legacyProgressRaw ? 'in-sync' : 'out-of-sync';
   }
-  function persist(proposed, baseline = current) {
+  function persist(proposed, baseline = current,
+    writtenKeys = [...ALLOWED].filter((key) => proposed.get(key) !== baseline.get(key))) {
     const latest = readLatest();
     const next = new Map([...ALLOWED].map((key) => [key,
       reconcile(key, baseline.get(key) ?? null, proposed.get(key) ?? null, latest.values.get(key) ?? null)]));
@@ -158,6 +162,7 @@ export function createLearningStorage(nativeStorage) {
     nativeStorage.setItem(KEY, canonicalRaw(next, latest.legacy, latest.envelope));
     legacyProgressRaw = latest.legacy;
     current = next;
+    for (const key of writtenKeys) observed.set(key, current.get(key));
     const nextProgressRaw = next.get(PROGRESS_KEY) ?? null;
     if (nextProgressRaw === legacyProgressRaw) {
       legacySyncState = 'in-sync';
@@ -178,19 +183,29 @@ export function createLearningStorage(nativeStorage) {
   const storage = {
     getItem(key) {
       refresh();
-      return (draft ?? current).get(key) ?? null;
+      const value = (draft ?? current).get(key) ?? null;
+      if (!draft && ALLOWED.has(key)) observed.set(key, value);
+      return value;
     },
     setItem(key, value) {
       if (!ALLOWED.has(key)) throw new TypeError('未知的学习记录类型。');
       const next = draft ?? new Map(current);
       next.set(key, String(value));
-      if (!draft) persist(next);
+      if (!draft) {
+        const baseline = new Map(current);
+        baseline.set(key, observed.get(key) ?? null);
+        persist(next, baseline, [key]);
+      }
     },
     removeItem(key) {
       if (!ALLOWED.has(key)) throw new TypeError('未知的学习记录类型。');
       const next = draft ?? new Map(current);
       next.set(key, null);
-      if (!draft) persist(next);
+      if (!draft) {
+        const baseline = new Map(current);
+        baseline.set(key, observed.get(key) ?? null);
+        persist(next, baseline, [key]);
+      }
     },
   };
   return {

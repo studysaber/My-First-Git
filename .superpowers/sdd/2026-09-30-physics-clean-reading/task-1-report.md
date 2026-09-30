@@ -44,3 +44,15 @@ The TDD skill and its `writing-good-tests.md` reference were read before editing
 - No browser test was run for this storage-only task. Real two-tab browser coverage belongs to Task 2/integration, as specified by the task split.
 
 No material unresolved concern or architecture ambiguity remains within Task 1.
+
+## Review fix round 1: preserve field-specific observations
+
+Reviewer found an important stale-snapshot hole: reading practice refreshed the whole adapter snapshot and thereby advanced the baseline for a previously read progress payload. Saving that older progress payload could overwrite both a newer same-entry change and an independently added entry without a conflict.
+
+- Added two regression tests in `tests/shared-learning.test.js` before the fix. One reproduces the exact interleaving: A reads `{a:'new'}`, B saves `{a:'mastered',b:'review'}`, A reads practice, and A adds `c:'review'` to its original snapshot. The other changes `a` locally after that unrelated read and requires conflict rejection without a persistent write.
+- RED command: `node --test tests/shared-learning.test.js`. Result: **9 tests, 7 passed, 2 failed**. The independent-entry reproduction returned `{a:'new',c:'review'}`, dropping B's `b` and restoring A's old `a`. The same-entry regression failed with `Missing expected exception`.
+- The adapter now keeps an observed baseline per field, separate from its latest envelope cache. A field read advances only that field's observation. Envelope refresh does not invalidate outstanding observations. A successful direct write advances only the written field; transaction commits advance only fields locally changed from the transaction baseline. Observations update only after the canonical commit succeeds.
+- Direct mutation reconciles its written field against that field's observation, while untouched fields retain the latest envelope semantics. Transaction reconciliation continues to use its isolated starting snapshot.
+- GREEN command: `node --test tests/shared-learning.test.js tests/learning-storage.test.js tests/practice.test.js`. Result: **33 tests passed, 0 failed**.
+- Full verification: `npm test`. Result: **180 tests passed, 0 failed**.
+- Self-review confirms that unrelated reads, explicit refresh, and writes to another field cannot advance the baseline needed by a pending field snapshot. Same-entry changes still reject before persistence, and failed canonical commits leave observations intact. No app, styling, direction metadata, or deployment files were changed.
