@@ -20,11 +20,11 @@ function routeLayout(routeNodes) {
 }
 
 const edgeStyles = new Map([
-  ['先修', { color: '#73d9c7', dash: '' }],
-  ['推导/解释', { color: '#82b6ff', dash: '7 3' }],
-  ['类比/迁移', { color: '#e7c889', dash: '2 4' }],
-  ['对比', { color: '#e79ab3', dash: '8 4 2 4' }],
-  ['应用', { color: '#b9a1ff', dash: '3 3' }],
+  ['先修', { color: 'var(--plot-green, #24664F)', dash: '' }],
+  ['推导/解释', { color: 'var(--plot-blue, #275F91)', dash: '7 3' }],
+  ['类比/迁移', { color: 'var(--plot-ochre, #8A5A12)', dash: '2 4' }],
+  ['对比', { color: 'var(--plot-comparison, #96506B)', dash: '8 4 2 4' }],
+  ['应用', { color: 'var(--plot-purple, #71539A)', dash: '3 3' }],
 ]);
 
 const nodeTypeLabels = Object.freeze({
@@ -267,7 +267,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
       const from = activePositions.get(edge.source);
       const to = activePositions.get(edge.target);
       if (!from || !to) return '';
-      const style = edgeStyles.get(edge.type) ?? { color: '#9eacc0', dash: '3 4' };
+      const style = edgeStyles.get(edge.type) ?? { color: 'var(--plot-axis, #637067)', dash: '3 4' };
       const midX = (from.x + to.x) / 2;
       const midY = (from.y + to.y) / 2;
       const bend = Math.max(-36, Math.min(36, (to.x - from.x) * 0.12));
@@ -303,7 +303,7 @@ export function renderGraph({ root, nodes = [], edges = [], chapters = [], filte
     <div class="graph-canvas${currentFilters.routeOnly ? ' route-canvas' : currentFilters.chapterId ? ' chapter-focus-canvas' : ' graph-overview-canvas'}" style="aspect-ratio:${currentFilters.routeOnly ? routeWidth : fullLayout.width}/${currentFilters.routeOnly ? routeHeight : currentFilters.chapterId ? CHAPTER_FOCUS_HEIGHT : fullLayout.height}" aria-label="完整知识图谱，可拖动平移并用滚轮缩放">
       <svg class="route-graph${currentFilters.routeOnly ? ' route-only-graph' : ''}" viewBox="0 0 ${currentFilters.routeOnly ? routeWidth : fullLayout.width} ${currentFilters.routeOnly ? routeHeight : currentFilters.chapterId ? CHAPTER_FOCUS_HEIGHT : fullLayout.height}" role="group" aria-labelledby="graph-title graph-description" preserveAspectRatio="xMidYMid meet">
         <title id="graph-title">第 9 至 16 章物理知识关系图</title><desc id="graph-description">节点按章节成组；每个节点都可用键盘选择，连线有方向、类型和文字说明。</desc>
-        <defs><marker id="edge-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#91a9c3"/></marker></defs>
+        <defs><marker id="edge-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--plot-axis, #637067)"/></marker></defs>
         <g class="graph-world" transform="translate(${panX} ${panY}) scale(${zoom})">
           ${edgeMarkup}${overview ? '' : `<path class="route-trace" d="${routePath}" aria-hidden="true"/>`}${currentFilters.routeOnly ? compactRouteMarkup : chapterMarkup}
         </g>
