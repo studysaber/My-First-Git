@@ -103,19 +103,13 @@ export function createLearningStorage(nativeStorage) {
         if (Object.hasOwn(parsed, 'legacyProgressRaw') && legacyProgressRaw !== parsed.legacyProgressRaw) {
           if (!validLegacyProgress(legacyProgressRaw)) throw new Error('损坏的学习记录。');
           current.set(PROGRESS_KEY, legacyProgressRaw);
-          nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw, parsed));
         } else {
-          try {
-            if (parsed.progressRaw === null) nativeStorage.removeItem(PROGRESS_KEY);
-            else nativeStorage.setItem(PROGRESS_KEY, parsed.progressRaw);
-            legacyProgressRaw = parsed.progressRaw;
-            nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw, parsed));
-          } catch { legacySyncState = 'out-of-sync'; }
+          legacySyncState = 'out-of-sync';
         }
-      } else if (parsed.legacyProgressRaw !== legacyProgressRaw) {
-        try { nativeStorage.setItem(KEY, canonicalRaw(current, legacyProgressRaw, parsed)); }
-        catch { legacySyncState = 'out-of-sync'; }
       }
+      // Startup is read-only: a different page may commit after this snapshot.
+      // persist() acknowledges rollback edits and retries mirrors only after
+      // rereading the envelope inside the caller's exclusive mutation.
     }
   } catch {
     return { storage: null, state: 'damaged', refresh() {}, runExclusive };
@@ -176,7 +170,7 @@ export function createLearningStorage(nativeStorage) {
       legacySyncState = 'in-sync';
     } catch {
       // The canonical v2 write succeeded. Keep that record available and retry the
-      // legacy mirror at the next startup or mutation; warn before any rollback.
+      // legacy mirror at the next mutation; warn before any rollback.
       legacySyncState = 'out-of-sync';
     }
   }

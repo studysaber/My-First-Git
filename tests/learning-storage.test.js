@@ -40,7 +40,12 @@ test('a legacy-site edit after rollback is recovered on the next v2 visit', () =
   assert.equal(JSON.parse(restored.storage.getItem('physics-atlas-progress-v1')).progress['c10-wave'], 'review');
   assert.equal(JSON.parse(restored.storage.getItem('physics-atlas-progress-v1')).progress['c9-shm'], 'review');
   assert.equal(restored.storage.getItem('physics-atlas-practice-v2'), '{"schemaVersion":2,"records":{"q":1}}');
+  // A visit reconciles the old site's edit for reading; the next exclusive
+  // mutation acknowledges it without writing a captured startup envelope.
+  assert.notEqual(JSON.parse(native.getItem(learningStorageKey)).progressRaw, native.getItem('physics-atlas-progress-v1'));
+  restored.runExclusive(() => restored.storage.setItem('physics-atlas-practice-v2', '{"schemaVersion":2,"records":{"q":1,"next":2}}'));
   assert.equal(JSON.parse(native.getItem(learningStorageKey)).progressRaw, native.getItem('physics-atlas-progress-v1'));
+  assert.deepEqual(JSON.parse(restored.storage.getItem('physics-atlas-practice-v2')).records, { q: 1, next: 2 });
 });
 
 test('a failed legacy mirror is flagged and retried without losing canonical progress', () => {
@@ -55,6 +60,10 @@ test('a failed legacy mirror is flagged and retried without losing canonical pro
   assert.equal(JSON.parse(native.getItem(learningStorageKey)).progressRaw, latest);
   native.failKey = null;
   const second = createLearningStorage(native);
+  assert.equal(second.getLegacySyncState(), 'out-of-sync');
+  assert.equal(second.storage.getItem('physics-atlas-progress-v1'), latest);
+  assert.equal(native.getItem('physics-atlas-progress-v1'), old);
+  second.runExclusive(() => second.storage.setItem('physics-atlas-practice-v2', '{"schemaVersion":2,"records":{}}'));
   assert.equal(second.getLegacySyncState(), 'in-sync');
   assert.equal(native.getItem('physics-atlas-progress-v1'), latest);
 });

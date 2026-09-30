@@ -18,6 +18,43 @@ class SharedStorage {
   removeItem(key) { this.values.delete(key); }
 }
 
+for (const branch of ['legacy rollback', 'failed mirror', 'mirror acknowledgment']) {
+  test(`startup ${branch} cannot overwrite an answer saved after its canonical read`, () => {
+    const native = new SharedStorage();
+    const review = '{"version":1,"progress":{"c9-shm":"review"}}';
+    const mastered = '{"version":1,"progress":{"c9-shm":"mastered"}}';
+    native.setItem(progressKey, branch === 'failed mirror' ? review : mastered);
+    native.setItem(learningStorageKey, JSON.stringify({
+      schemaVersion: 2, progressRaw: branch === 'legacy rollback' ? review : mastered,
+      practiceRaw: null, legacyProgressRaw: review,
+    }));
+    const active = createPracticeStore(createLearningStorage(native).storage);
+    // Restore the exact branch after preparing the active page: startup itself
+    // used to repair it. Both pages share one native Storage-compatible map.
+    native.setItem(progressKey, branch === 'failed mirror' ? review : mastered);
+    native.setItem(learningStorageKey, JSON.stringify({
+      schemaVersion: 2, progressRaw: branch === 'legacy rollback' ? review : mastered,
+      practiceRaw: null, legacyProgressRaw: review,
+    }));
+    const read = native.getItem.bind(native);
+    let interleaved = false;
+    native.getItem = (key) => {
+      const captured = read(key);
+      if (key === learningStorageKey && !interleaved) {
+        interleaved = true;
+        active.submit(q1, q1.answer);
+      }
+      return captured;
+    };
+    const startup = createLearningStorage(native);
+    assert.equal(startup.state, 'persistent');
+    assert.equal(createPracticeStore(startup.storage).getRecord(q1)?.passed, true);
+    assert.equal(JSON.parse(read(learningStorageKey)).practiceRaw !== null, true);
+    assert.equal(JSON.parse(read(learningStorageKey)).progressRaw, mastered);
+    assert.equal(createProgressStore(startup.storage).getAll()['c9-shm'], 'mastered');
+  });
+}
+
 test('a self-assessment from an older adapter retains another tab’s answer', () => {
   const native = new SharedStorage();
   const a = createLearningStorage(native), b = createLearningStorage(native);

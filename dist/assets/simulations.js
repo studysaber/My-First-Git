@@ -271,7 +271,7 @@ function plotGeometry(id, state, waveTime = 0) {
   if (id === 'pendulum') {
     const bob = pendulumState({ length: state.length, gravity: state.gravity, amplitudeRad: state.amplitudeDeg * Math.PI / 180, time: waveTime });
     const bobX = 140 + bob.x * 50, bobY = 18 + bob.y * 50;
-    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="小角单摆，悬点固定，摆长比例为每米50像素"><circle cx="140" cy="18" r="4" fill="var(--plot-ochre, #8A5A12)"/><line x1="140" y1="18" x2="${bobX.toFixed(2)}" y2="${bobY.toFixed(2)}" stroke="var(--plot-blue, #275F91)" stroke-width="2"/><circle data-pendulum-bob="true" cx="${bobX.toFixed(2)}" cy="${bobY.toFixed(2)}" r="9" fill="var(--plot-green, #24664F)"/><text x="16" y="136">ℓ = ${formatNumber(state.length)} m；t = ${formatNumber(waveTime)} s</text><text x="18" y="22">小角近似</text></svg>`;
+    return `<svg class="simulation-plot" viewBox="0 0 280 150" role="img" aria-label="小角单摆，悬点固定，摆长比例为每米50像素"><circle cx="140" cy="18" r="4" fill="var(--plot-ochre, #8A5A12)"/><line x1="140" y1="18" x2="${bobX.toFixed(2)}" y2="${bobY.toFixed(2)}" stroke="var(--plot-blue, #275F91)" stroke-width="2"/><circle data-pendulum-bob="true" cx="${bobX.toFixed(2)}" cy="${bobY.toFixed(2)}" r="9" fill="var(--plot-green, #24664F)"/><text x="16" y="136">t = ${formatNumber(waveTime)} s</text></svg>`;
   }
   if (id === 'wave') {
     const timeNote = state.mode === 'standing' ? '驻波随时间振荡，节点固定' : '行波形状随时间沿 +x 方向传播';
@@ -366,7 +366,7 @@ function visualMarkup(id, state, definition, waveTime = 0) {
   const areaNote = id === 'carnot' ? (state.hotK === state.coldK
     ? '两热源等温时，状态 1 与 4、2 与 3 重合，绝热段无变化；等温线往返重合，围成面积与净功为 0。'
     : 'p-V 图中，顺时针循环围成的面积等于每循环气体对外做的净功 W = ∮p dV。') : '';
-  return `${plotSvg(id, state, waveTime)}<p class="simulation-fallback">${escapeHtml(definition.fallback)}${areaNote}</p>`;
+  return `${plotSvg(id, state, waveTime)}<p class="simulation-fallback${id === 'pendulum' ? ' screen-reader-only' : ''}">${escapeHtml(definition.fallback)}${areaNote}</p>`;
 }
 
 function initialValues(definition) {
@@ -393,7 +393,9 @@ export function mountSimulation(container, id) {
       <div class="simulation-settings">
       <div class="simulation-controls">${controlsMarkup}</div>
       ${id === 'pendulum' ? '<p class="period-readout">周期 <i>T</i><output data-role="period"></output><small>小角度近似 · 忽略阻力</small></p>' : ''}
+      ${id === 'pendulum' ? '<details class="simulation-state"><summary>完整状态与模型说明</summary>' : ''}
       <p class="simulation-result" data-role="result" aria-live="polite"></p>
+      ${id === 'pendulum' ? '</details>' : ''}
       </div>
       <p class="simulation-validation" data-role="validation" role="status"></p>
     </section>`;

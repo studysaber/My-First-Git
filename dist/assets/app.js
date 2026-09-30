@@ -657,6 +657,8 @@ function mountStudyApp(root, data) {
       const playback = activeSimulationMount.querySelector('.simulation-playback');
       const reset = detail.querySelector('.simulation-launch-button');
       if (playback && reset) playback.append(reset);
+      const prediction = detail.querySelector('.prediction-disclosure');
+      if (playback && prediction) playback.append(prediction);
     }
   }
 
@@ -682,7 +684,7 @@ function mountStudyApp(root, data) {
     graph?.setFilters({ ...resetGraphFacets(), searchIds: null, routeOnly: activeView === '速学路线' });
   }
 
-  function changeView(label, preserveSearch = false) {
+  function changeView(label, preserveSearch = false, sync = true) {
     activeView = label;
     workspace.classList.toggle('is-full-graph', label === '完整图谱');
     root.querySelector('#view-select').value = label;
@@ -706,7 +708,7 @@ function mountStudyApp(root, data) {
       noResults.classList.add('is-hidden');
       renderStudyView();
     }
-    syncLocation();
+    if (sync) syncLocation();
   }
 
   function selectRoute(routeId) {
@@ -775,8 +777,12 @@ function mountStudyApp(root, data) {
   root.addEventListener('click', (event) => {
     const directoryNode = event.target.closest?.('[data-directory-node]');
     if (directoryNode) {
+      const id = directoryNode.getAttribute('data-directory-node');
       closeDirectory();
-      selectNode(directoryNode.getAttribute('data-directory-node'), { focus: true });
+      // The view and selected node are one navigation, so Back returns to the
+      // source surface instead of an intermediate reading page.
+      if (activeView === '章节地图' || activeView === '教材评估') changeView('速学路线', false, false);
+      selectNode(id, { focus: true });
       return;
     }
     const relatedNode = event.target.closest?.('.related-node[data-node-id]');
