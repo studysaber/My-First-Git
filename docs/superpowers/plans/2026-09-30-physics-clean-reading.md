@@ -107,6 +107,8 @@ await expect(page.locator('.simulation-plot')).toContainText('等温膨胀');
 
 **Interfaces:** Preserve node/tab/view URL semantics and all prior workflows; consume review button/queue from Task 2. Approved reference is `docs/design-reference/handbook-preview.png`; retain user-pinned design even if the concept-seed tooling suggests unrelated catalog styles. Seed key `7886ee29` is provenance, not permission to replace the chosen direction.
 
+`tests/study.test.js` fake DOM fixtures may receive bounded support for standard `append()` needed by semantic control relocation; preserve existing assertions rather than weakening production DOM requirements for incomplete stubs.
+
 - [ ] Add behavioral layout tests: guided reading has an accessible list-based directory, full node titles, collapsible advanced filters, no visible tall route SVG in reading mode; complete graph remains a functional expanded view. Mobile directory can open/close without obstructing focus or content, 44 px controls, no horizontal overflow.
 
 ```js
