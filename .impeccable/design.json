@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T12:46:05.667Z",
+  "title": "Design System: 物理知识地图",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "深灰正文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0212 257.28)",
+          "oklch(26.43% 0.0212 257.28)",
+          "oklch(37.86% 0.0212 257.28)",
+          "oklch(49.29% 0.0212 257.28)",
+          "oklch(60.71% 0.0212 257.28)",
+          "oklch(72.14% 0.0212 257.28)",
+          "oklch(83.57% 0.0212 257.28)",
+          "oklch(95.00% 0.0212 257.28)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "次级灰字",
+        "tonalRamp": [
+          "oklch(15.00% 0.0201 248.23)",
+          "oklch(26.43% 0.0201 248.23)",
+          "oklch(37.86% 0.0201 248.23)",
+          "oklch(49.29% 0.0201 248.23)",
+          "oklch(60.71% 0.0201 248.23)",
+          "oklch(72.14% 0.0201 248.23)",
+          "oklch(83.57% 0.0201 248.23)",
+          "oklch(95.00% 0.0201 248.23)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "暖白纸面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0041 121.56)",
+          "oklch(26.43% 0.0041 121.56)",
+          "oklch(37.86% 0.0041 121.56)",
+          "oklch(49.29% 0.0041 121.56)",
+          "oklch(60.71% 0.0041 121.56)",
+          "oklch(72.14% 0.0041 121.56)",
+          "oklch(83.57% 0.0041 121.56)",
+          "oklch(95.00% 0.0041 121.56)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "白色正文",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "细线灰",
+        "tonalRamp": [
+          "oklch(15.00% 0.0076 151.88)",
+          "oklch(26.43% 0.0076 151.88)",
+          "oklch(37.86% 0.0076 151.88)",
+          "oklch(49.29% 0.0076 151.88)",
+          "oklch(60.71% 0.0076 151.88)",
+          "oklch(72.14% 0.0076 151.88)",
+          "oklch(83.57% 0.0076 151.88)",
+          "oklch(95.00% 0.0076 151.88)"
+        ]
+      },
+      "teal": {
+        "role": "primary",
+        "displayName": "墨绿交互",
+        "tonalRamp": [
+          "oklch(15.00% 0.0714 170.07)",
+          "oklch(26.43% 0.0714 170.07)",
+          "oklch(37.86% 0.0714 170.07)",
+          "oklch(49.29% 0.0714 170.07)",
+          "oklch(60.71% 0.0714 170.07)",
+          "oklch(72.14% 0.0714 170.07)",
+          "oklch(83.57% 0.0714 170.07)",
+          "oklch(95.00% 0.0714 170.07)"
+        ]
+      },
+      "blue": {
+        "role": "secondary",
+        "displayName": "模型蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.1001 248.56)",
+          "oklch(26.43% 0.1001 248.56)",
+          "oklch(37.86% 0.1001 248.56)",
+          "oklch(49.29% 0.1001 248.56)",
+          "oklch(60.71% 0.1001 248.56)",
+          "oklch(72.14% 0.1001 248.56)",
+          "oklch(83.57% 0.1001 248.56)",
+          "oklch(95.00% 0.1001 248.56)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "赭色标记",
+        "tonalRamp": [
+          "oklch(15.00% 0.1025 70.83)",
+          "oklch(26.43% 0.1025 70.83)",
+          "oklch(37.86% 0.1025 70.83)",
+          "oklch(49.29% 0.1025 70.83)",
+          "oklch(60.71% 0.1025 70.83)",
+          "oklch(72.14% 0.1025 70.83)",
+          "oklch(83.57% 0.1025 70.83)",
+          "oklch(95.00% 0.1025 70.83)"
+        ]
+      },
+      "violet": {
+        "role": "secondary",
+        "displayName": "模型紫",
+        "tonalRamp": [
+          "oklch(15.00% 0.1133 302.00)",
+          "oklch(26.43% 0.1133 302.00)",
+          "oklch(37.86% 0.1133 302.00)",
+          "oklch(49.29% 0.1133 302.00)",
+          "oklch(60.71% 0.1133 302.00)",
+          "oklch(72.14% 0.1133 302.00)",
+          "oklch(83.57% 0.1133 302.00)",
+          "oklch(95.00% 0.1133 302.00)"
+        ]
+      },
+      "selected": {
+        "role": "primary",
+        "displayName": "浅绿选择面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0092 150.69)",
+          "oklch(26.43% 0.0092 150.69)",
+          "oklch(37.86% 0.0092 150.69)",
+          "oklch(49.29% 0.0092 150.69)",
+          "oklch(60.71% 0.0092 150.69)",
+          "oklch(72.14% 0.0092 150.69)",
+          "oklch(83.57% 0.0092 150.69)",
+          "oklch(95.00% 0.0092 150.69)"
+        ]
+      },
+      "plot-green": {
+        "role": "primary",
+        "displayName": "模型绿",
+        "tonalRamp": [
+          "oklch(15.00% 0.0770 166.73)",
+          "oklch(26.43% 0.0770 166.73)",
+          "oklch(37.86% 0.0770 166.73)",
+          "oklch(49.29% 0.0770 166.73)",
+          "oklch(60.71% 0.0770 166.73)",
+          "oklch(72.14% 0.0770 166.73)",
+          "oklch(83.57% 0.0770 166.73)",
+          "oklch(95.00% 0.0770 166.73)"
+        ]
+      },
+      "plot-axis": {
+        "role": "neutral",
+        "displayName": "坐标灰绿",
+        "tonalRamp": [
+          "oklch(15.00% 0.0210 155.40)",
+          "oklch(26.43% 0.0210 155.40)",
+          "oklch(37.86% 0.0210 155.40)",
+          "oklch(49.29% 0.0210 155.40)",
+          "oklch(60.71% 0.0210 155.40)",
+          "oklch(72.14% 0.0210 155.40)",
+          "oklch(83.57% 0.0210 155.40)",
+          "oklch(95.00% 0.0210 155.40)"
+        ]
+      },
+      "plot-ink": {
+        "role": "neutral",
+        "displayName": "图中文字灰",
+        "tonalRamp": [
+          "oklch(15.00% 0.0220 158.01)",
+          "oklch(26.43% 0.0220 158.01)",
+          "oklch(37.86% 0.0220 158.01)",
+          "oklch(49.29% 0.0220 158.01)",
+          "oklch(60.71% 0.0220 158.01)",
+          "oklch(72.14% 0.0220 158.01)",
+          "oklch(83.57% 0.0220 158.01)",
+          "oklch(95.00% 0.0220 158.01)"
+        ]
+      },
+      "plot-selection": {
+        "role": "neutral",
+        "displayName": "图内浅绿选择",
+        "tonalRamp": [
+          "oklch(15.00% 0.0116 162.04)",
+          "oklch(26.43% 0.0116 162.04)",
+          "oklch(37.86% 0.0116 162.04)",
+          "oklch(49.29% 0.0116 162.04)",
+          "oklch(60.71% 0.0116 162.04)",
+          "oklch(72.14% 0.0116 162.04)",
+          "oklch(83.57% 0.0116 162.04)",
+          "oklch(95.00% 0.0116 162.04)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "知识点标题",
+        "purpose": "当前概念主标题，手机与图谱有实际字号变体。"
+      },
+      "title": {
+        "displayName": "实验标题",
+        "purpose": "实验区域标题；其他分节使用更小的现有字号。"
+      },
+      "summary": {
+        "displayName": "概念摘要",
+        "purpose": "主标题下方的短摘要。"
+      },
+      "body": {
+        "displayName": "连续正文",
+        "purpose": "舒展的中文阅读。"
+      },
+      "label": {
+        "displayName": "说明与状态",
+        "purpose": "次级文字、状态和轻量操作。"
+      },
+      "readout": {
+        "displayName": "周期读数",
+        "purpose": "单摆周期的大数字输出。"
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "experiment-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "mobile-reading",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "主要按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "现有开始练习按钮；默认、悬停和键盘焦点。",
+      "html": "<button type=\"button\" class=\"ds-button-primary\">开始练习 <span aria-hidden=\"true\">→</span></button>",
+      "css": ".ds-button-primary{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:16px;line-height:1.7;min-height:44px;padding:8px 14px;border:1px solid var(--line,#dce1dd);border-radius:6px;color:var(--ink,#202731);background:var(--panel,#fff);cursor:pointer;color:var(--panel,#fff);background:var(--teal,#286653);border-color:var(--teal,#286653)}.ds-button-primary:hover{background:var(--selected,#eaf0eb);border-color:#b2c4b9;color:var(--ink,#202731)}.ds-button-primary:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}"
+    },
+    {
+      "name": "普通按钮",
+      "kind": "button",
+      "refersTo": "button-neutral",
+      "description": "单步、重置和一般操作；包含实际禁用处理。",
+      "html": "<button type=\"button\" class=\"ds-button-neutral\">单步 +0.1 s</button> <button type=\"button\" class=\"ds-button-neutral\" disabled>下一节 →</button>",
+      "css": ".ds-button-neutral{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:16px;line-height:1.7;min-height:44px;padding:8px 14px;border:1px solid var(--line,#dce1dd);border-radius:6px;color:var(--ink,#202731);background:var(--panel,#fff);cursor:pointer;}.ds-button-neutral:hover{background:var(--selected,#eaf0eb);border-color:#b2c4b9}.ds-button-neutral:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}.ds-button-neutral:disabled{color:#727b76;background:#f0f2ef;cursor:not-allowed}"
+    },
+    {
+      "name": "轻量按钮",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "原有自评和待复习动作；安静的灰字与透明边界。",
+      "html": "<button type=\"button\" class=\"ds-button-quiet\">标记掌握（自评）</button>",
+      "css": ".ds-button-quiet{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:16px;line-height:1.7;min-height:44px;padding:8px 14px;border:1px solid var(--line,#dce1dd);border-radius:6px;color:var(--ink,#202731);background:var(--panel,#fff);cursor:pointer;padding:8px;font-size:14px;color:var(--muted,#5c6670);border-color:transparent}.ds-button-quiet:hover{background:var(--selected,#eaf0eb);border-color:#b2c4b9}.ds-button-quiet:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}"
+    },
+    {
+      "name": "搜索输入",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "搜索概念、公式或关键词；不依赖远程资源。",
+      "html": "<input type=\"search\" class=\"ds-search-input\" aria-label=\"搜索概念、公式或关键词\" placeholder=\"搜索概念、公式或关键词\" autocomplete=\"off\">",
+      "css": ".ds-search-input{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:15px;line-height:1.7;color:var(--ink,#202731);max-width:100%;width:274px;min-height:44px;padding:8px 12px;border:1px solid var(--line,#dce1dd);border-radius:6px;background:var(--field,#f8f9f6);caret-color:var(--teal,#286653)}.ds-search-input::placeholder{color:#69736f}.ds-search-input:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}@media(max-width:760px){.ds-search-input{width:100%;font-size:14px}}"
+    },
+    {
+      "name": "章节目录",
+      "kind": "nav",
+      "refersTo": "directory-item",
+      "description": "原生章节开合、概念整行目标及真实当前项状态。",
+      "html": "<nav class=\"ds-directory\" aria-label=\"学习目录\"><details class=\"ds-directory-chapter\" open><summary>第 9 章 · 振动</summary><ul><li><button type=\"button\" class=\"ds-directory-item\">简谐运动的状态方程</button></li><li><button type=\"button\" class=\"ds-directory-item\" aria-current=\"page\">单摆的小角振动</button></li></ul></details></nav>",
+      "css": ".ds-directory{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);color:var(--ink,#202731);background:var(--field,#f8f9f6);line-height:1.7}.ds-directory-chapter{margin:0 0 4px}.ds-directory-chapter summary{min-height:44px;padding:10px 0;font-size:16px;font-weight:550;cursor:pointer}.ds-directory-chapter ul{list-style:none;margin:2px 0 14px;padding:0;max-height:300px;overflow:auto}.ds-directory-item{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:16px;line-height:1.7;min-height:44px;padding:8px 14px;border:1px solid var(--line,#dce1dd);border-radius:6px;color:var(--ink,#202731);background:var(--panel,#fff);cursor:pointer;display:block;width:100%;padding:9px 14px 9px 20px;border:0;background:transparent;text-align:left;line-height:1.5;overflow-wrap:anywhere}.ds-directory-item:hover,.ds-directory-item[aria-current=\"page\"]{background:var(--selected,#eaf0eb);color:var(--teal,#286653)}.ds-directory-item[aria-current=\"page\"]{font-weight:650}.ds-directory-item:focus-visible,.ds-directory-chapter summary:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}"
+    },
+    {
+      "name": "学习任务标签",
+      "kind": "nav",
+      "refersTo": "task-tab",
+      "description": "四任务视觉状态示例；复制本身不运行应用的标签切换。",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\" aria-label=\"知识点学习方式\"><button type=\"button\" class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">理解</button><button type=\"button\" class=\"ds-tab\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\">实验</button><button type=\"button\" class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">练习</button><button type=\"button\" class=\"ds-tab\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">知识关系</button></div>",
+      "css": ".ds-tabs{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);display:flex;gap:24px;margin:12px 0 20px;border-bottom:1px solid var(--line,#dce1dd)}.ds-tab{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);font-size:16px;line-height:1.7;min-height:44px;padding:8px 14px;border:1px solid var(--line,#dce1dd);border-radius:6px;color:var(--ink,#202731);background:var(--panel,#fff);cursor:pointer;padding:10px 5px;min-width:64px;border:0;border-radius:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted,#5c6670);font-size:18px}.ds-tab:hover{background:transparent}.ds-tab[aria-selected=\"true\"]{color:var(--teal,#286653);font-weight:650;border-bottom-color:var(--teal,#286653)}.ds-tab:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}@media(max-width:760px){.ds-tabs{gap:10px;margin:14px 0 18px}.ds-tab{font-size:16px;min-width:52px;padding-inline:3px}}"
+    },
+    {
+      "name": "练习答案行",
+      "kind": "input",
+      "refersTo": "choice-option",
+      "description": "保留原生单选框；选择后按真实 CSS 改变行的底色与边框。",
+      "html": "<fieldset class=\"ds-choice-group\"><legend>请选择答案</legend><label class=\"ds-choice-option\"><input type=\"radio\" name=\"ds-practice-option\" checked>周期增大 2 倍</label><label class=\"ds-choice-option\"><input type=\"radio\" name=\"ds-practice-option\">周期不变</label></fieldset>",
+      "css": ".ds-choice-group{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);display:grid;gap:8px;border:0;padding:0;margin:0;color:var(--ink,#202731);font-size:16px;line-height:1.7;accent-color:var(--teal,#286653)}.ds-choice-group legend{color:var(--muted,#5c6670);margin-bottom:8px}.ds-choice-option{display:flex;align-items:baseline;gap:10px;min-height:44px;padding:10px 12px;border:1px solid var(--line,#dce1dd);border-radius:6px;cursor:pointer}.ds-choice-option input{width:18px;height:18px;flex-shrink:0}.ds-choice-option:has(input:checked){background:var(--selected,#eaf0eb);border-color:var(--teal,#286653)}.ds-choice-option input:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}"
+    },
+    {
+      "name": "实验容器与参数",
+      "kind": "card",
+      "refersTo": "experiment-container",
+      "description": "实际两栏实验表面、原生范围控件及周期默认值的静态结构示例；不模拟物理动画或读数联动。",
+      "html": "<section class=\"ds-experiment\" aria-label=\"单摆实验容器示例\"><div class=\"ds-experiment-heading\"><h3>改变摆长，观察周期</h3></div><div class=\"ds-experiment-model\"><p class=\"ds-experiment-fallback\">摆球沿圆弧往复运动；小角度下重力切向分量近似正比于位移，因此周期主要由摆长和重力加速度决定。</p></div><div class=\"ds-experiment-settings\"><label class=\"ds-experiment-control\"><span>摆长 ℓ <output>1 m</output></span><input type=\"range\" min=\"0.2\" max=\"2\" step=\"0.1\" value=\"1\" aria-label=\"摆长 ℓ，m\"></label><p class=\"ds-experiment-readout\">周期 <i>T</i><output>2.01 s</output><small>小角度近似 · 忽略阻力</small></p></div></section>",
+      "css": ".ds-experiment{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,1fr);column-gap:30px;padding:18px 22px 20px;background:var(--field,#f8f9f6);color:var(--ink,#202731);border-radius:12px;line-height:1.7}.ds-experiment-heading{grid-column:1/-1}.ds-experiment-heading h3{font-size:20px;line-height:1.4;margin:0 0 18px}.ds-experiment-model{min-width:0}.ds-experiment-fallback{color:var(--muted,#5c6670);font-size:13px;margin:8px 0 0}.ds-experiment-settings{padding:0 8px 0 28px;border-left:1px solid var(--line,#dce1dd)}.ds-experiment-control{display:grid;gap:3px;font-size:17px}.ds-experiment-control span{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.ds-experiment-control output{font-variant-numeric:tabular-nums;white-space:nowrap}.ds-experiment-control input{min-height:44px;padding:0;width:100%;cursor:pointer;accent-color:var(--teal,#286653)}.ds-experiment-control input:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}.ds-experiment-readout{margin:12px 0 0;border-top:1px solid var(--line,#dce1dd);padding-top:12px;font-size:19px}.ds-experiment-readout output{display:block;font-size:42px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}.ds-experiment-readout small{display:block;color:var(--muted,#5c6670);font-size:14px}@media(max-width:1100px){.ds-experiment{grid-template-columns:minmax(0,1fr)}.ds-experiment-settings{padding:20px 0 0;border-left:0}}@media(max-width:760px){.ds-experiment{padding:16px 12px}.ds-experiment-heading h3{font-size:18px;margin-bottom:8px}.ds-experiment-settings{padding:18px 0 0}.ds-experiment-control{font-size:16px}.ds-experiment-fallback{font-size:14px}}"
+    },
+    {
+      "name": "模型说明披露",
+      "kind": "custom",
+      "refersTo": "disclosure",
+      "description": "现有原生详细状态 disclosure，开合与焦点真实可用。",
+      "html": "<details class=\"ds-disclosure\"><summary>完整状态与模型说明</summary><p class=\"ds-disclosure-result\">周期 T = 2.01 s；t = 0 s；θ₀ = 10°；ℓ = 1 m，g = 9.8 m·s⁻²。适用条件：小角谐振近似，摆线质量忽略。</p></details>",
+      "css": ".ds-disclosure{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);margin-top:8px;color:var(--muted,#5c6670);font-size:14px;line-height:1.7}.ds-disclosure summary{min-height:44px;padding:10px 0;cursor:pointer}.ds-disclosure summary:focus-visible{outline:2px solid var(--teal,#286653);outline-offset:3px;}.ds-disclosure-result{margin:0;padding-top:8px;border:0;font-size:14px;color:var(--ink,#202731)}"
+    },
+    {
+      "name": "周期读数",
+      "kind": "custom",
+      "refersTo": "period-readout",
+      "description": "实际单摆周期输出层级；以源模型默认参数为静态示例。",
+      "html": "<p class=\"ds-period-readout\">周期 <i>T</i><output>2.01 s</output><small>小角度近似 · 忽略阻力</small></p>",
+      "css": ".ds-period-readout{font-family:var(--body,\"Microsoft YaHei UI\",\"PingFang SC\",\"Noto Sans CJK SC\",sans-serif);color:var(--ink,#202731);margin:12px 0 0;border-top:1px solid var(--line,#dce1dd);padding-top:12px;font-size:19px;line-height:1.7}.ds-period-readout output{display:block;font-size:42px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}.ds-period-readout small{display:block;color:var(--muted,#5c6670);font-size:14px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "浅色学习手册",
+    "overview": "用一本清爽的学习手册承载真实的物理内容。暖白页面托住白色正文，深灰中文系统字承担阅读，墨绿只在当前选择、链接和主要动作处出现。界面平静、直接、可连续阅读，科学图形承担解释而不是装饰。\n\n用户选定的浅色手册方向已经替换旧深蓝世界。后来确认的“内容和功能优先”意味着标题、完整目录、实验参数和科学模型遵从实际内容；预览约束布局和风格，不能成为删减内容或模仿错误物理几何的理由。此文档记录当前实现的设计系统，不代表独立视觉验收、阶段通过或线上发布结论。",
+    "keyCharacteristics": [
+      "连续正文、细分隔线与充足留白。",
+      "清晰的中文系统字和独立排版的公式。",
+      "墨绿选择与主要动作；科学配色有明确含义。",
+      "小幅圆角控件、无阴影的阅读表面。",
+      "手机目录收起，实验控件随可用宽度重排。"
+    ],
+    "rules": [
+      {
+        "name": "The Meaningful Color Rule",
+        "body": "颜色服务当前选择、主要动作和模型区分；科学图同时使用标签或线型解释差异。",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading Hierarchy Rule",
+        "body": "标题、摘要、当前学习任务和公式建立阅读顺序；不添加占据首屏的营销标题。",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Reading Rule",
+        "body": "阅读表面以色调和细线分层，不增加阴影或背景动效。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 使用暖白页面、白色正文、深灰文字和墨绿交互，遵从前置层中的实际源值。",
+      "Do 优先保留完整知识内容、实验参数、单位、模型条件和真实科学几何。",
+      "Do 用连续正文、细线和留白组织阅读；让科学模型、控件和读数相邻。",
+      "Do 保留手机收起目录、原生表单、清晰键盘焦点和公式局部滚动。",
+      "Do 用真实文字说明选中、暂停、错误、自评、作答历史和到期状态，并尊重减少动态设置。"
+    ],
+    "donts": [
+      "Don't 恢复旧深蓝背景、装饰渐变、发光连线、层层嵌套卡片或营销式大标题。",
+      "Don't 用效果图中的错误文字或几何替换实际科学内容。",
+      "Don't 把科学区分色扩展为装饰徽章，或只靠颜色传达科学过程与学习状态。",
+      "Don't 增加远程运行时字体、背景动画或未实现的组件状态。",
+      "Don't 把设计文档、测试通过或本地截图等同于独立视觉验收、全书审校或线上发布成功。",
+      ""
+    ]
+  }
+}
