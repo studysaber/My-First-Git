@@ -51,7 +51,7 @@ assert.equal(createPracticeStore(createLearningStorage(native).storage).getRecor
 
 ### Task 2: Honest practice feedback and due-review workflow
 
-**Files:** Modify `dist/assets/practice.js`, `dist/assets/app.js`, `dist/assets/learning-backup.js`; optionally create `dist/assets/review.js` for focused rendering/date helpers; Test `tests/practice.test.js`, `tests/learning-backup.test.js`, Create `tests/browser/review-workflow.spec.js` and `tests/browser/shared-learning.spec.js`.
+**Files:** Modify `dist/assets/practice.js`, `dist/assets/app.js`, `dist/assets/learning-backup.js`; optionally create `dist/assets/review.js` for focused rendering/date helpers; Test `tests/practice.test.js`, `tests/learning-backup.test.js`, Create `tests/browser/review-workflow.spec.js` and `tests/browser/shared-learning.spec.js`. Existing `tests/browser/backup.spec.js` may wait for the visible async save-completion message before inspecting storage; retain its original recovery assertions.
 
 **Interfaces:** Consume adapter `runExclusive(action)`/`refresh()` and practice `refresh()`. Preserve getRecord/submit/beginAttempt and existing backup schema. Practice preview may extend returned properties with `added`, `conflicts`, `imported` counts; adjust tests intentionally when contract grows.
 
