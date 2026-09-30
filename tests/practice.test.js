@@ -137,7 +137,7 @@ test('snapshot preview rejects wrong schema, unknown IDs and malformed practice 
   const record = source.getRecord(q);
   const target = createPracticeStore(null);
   const valid = { schemaVersion: 2, records: { 'test-q@1': record } };
-  assert.deepEqual(target.previewImport(valid, ['test-q']), { valid: true, accepted: 1, errors: [] });
+  assert.deepEqual(target.previewImport(valid, ['test-q']), { valid: true, accepted: 1, errors: [], imported: 1, added: 1, conflicts: 0 });
   assert.equal(target.previewImport({ ...valid, schemaVersion: 1 }, ['test-q']).valid, false);
   assert.equal(target.previewImport(valid, ['other-q']).valid, false);
   assert.equal(target.previewImport({ schemaVersion: 2, records: { 'test-q@1': { ...record, attempts: -1 } } }, ['test-q']).valid, false);
@@ -145,7 +145,7 @@ test('snapshot preview rejects wrong schema, unknown IDs and malformed practice 
   assert.equal(target.previewImport({ schemaVersion: 2, records: { 'test-q@1': { ...record, firstCorrect: false, passed: false, lastCorrect: true } } }, ['test-q']).valid, false);
 });
 
-test('practice import merges by latest answer, replaces when requested and keeps memory on failed write', () => {
+test('practice import keeps local conflicts, replaces when requested and keeps memory on failed write', () => {
   const q = { id: 'test-q', nodeId: 'c9-shm', version: 1, kind: 'concept', options: [{ id: 'yes', text: '是' }], answer: 'yes', explanation: '是。' };
   const map = new Map();
   let failWrite = false;
@@ -164,6 +164,26 @@ test('practice import merges by latest answer, replaces when requested and keeps
   target.importSnapshot(snapshot, { mode: 'replace', knownQuestionIds: ['test-q'] });
   assert.deepEqual(target.getRecord(q), older);
   assert.deepEqual(createPracticeStore(storage).getRecord(q), older);
+});
+
+test('newer incoming wrong answers never replace local passes in merge and preview counts conflicts and additions', () => {
+  const [q, other] = questions;
+  const target = createPracticeStore(null);
+  const source = createPracticeStore(null);
+  target.submit(q, q.answer, new Date('2026-09-28T12:00:00+08:00'));
+  const localRecord = target.getRecord(q);
+  source.submit(q, 'wrong', new Date('2026-09-29T12:00:00+08:00'));
+  source.submit(other, other.kind === 'numeric' ? { value: other.answer, unit: other.unit } : other.answer);
+  const snapshot = { schemaVersion: 2, records: source.getAll() };
+  const preview = target.previewImport(snapshot);
+  const imported = target.importSnapshot(snapshot, { mode: 'merge' });
+  assert.deepEqual(target.getRecord(q), localRecord);
+  assert.deepEqual(preview, { valid: true, accepted: 2, errors: [], imported: 2, added: 1, conflicts: 1 });
+  assert.equal(imported.conflicts, 1);
+  assert.deepEqual(target.getRecord(other), source.getRecord(other));
+  target.importSnapshot(snapshot, { mode: 'replace' });
+  assert.deepEqual(target.getRecord(q), source.getRecord(q));
+  assert.equal(target.previewImport(snapshot).conflicts, 0);
 });
 
 test('practice import reads current records instead of replacing an unseen newer answer', () => {

@@ -121,19 +121,23 @@ export function createPracticeStore(storage) {
     getAll() { refresh(); return structuredClone(memory); },
     getPersistenceState() { return persistence; },
     previewImport(snapshot, knownQuestionIds) {
-      return inspectSnapshot(snapshot, knownQuestionIds);
+      const preview = inspectSnapshot(snapshot, knownQuestionIds);
+      refresh();
+      const entries = preview.valid ? Object.entries(snapshot.records) : [];
+      const added = entries.filter(([key]) => !Object.hasOwn(memory, key)).length;
+      const conflicts = entries.filter(([key, record]) => Object.hasOwn(memory, key)
+        && Object.keys(record).some((field) => record[field] !== memory[key][field])).length;
+      return { ...preview, imported: preview.accepted, added, conflicts };
     },
     importSnapshot(snapshot, { mode = 'merge', knownQuestionIds } = {}) {
       if (mode !== 'merge' && mode !== 'replace') throw new TypeError('导入模式必须为 merge 或 replace。');
-      const preview = inspectSnapshot(snapshot, knownQuestionIds);
+      const preview = this.previewImport(snapshot, knownQuestionIds);
       if (!preview.valid) throw new TypeError(preview.errors.join('；'));
       refresh();
       const next = mode === 'replace' ? { ...snapshot.records } : { ...memory };
       if (mode === 'merge') {
         for (const [key, incoming] of Object.entries(snapshot.records)) {
-          const current = next[key];
-          if (!current || Date.parse(incoming.lastAnsweredAt) > Date.parse(current.lastAnsweredAt)
-            || (incoming.lastAnsweredAt === current.lastAnsweredAt && incoming.attempts > current.attempts)) next[key] = incoming;
+          if (!Object.hasOwn(next, key)) next[key] = incoming;
         }
       }
       const owned = structuredClone(next);
